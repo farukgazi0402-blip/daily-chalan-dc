@@ -4,6 +4,10 @@
     <description>Daily collection and poultry tracking app</description>
     <author email="support@example.com" href="https://github.com/">Faruk Gazi</author>
     <content src="index.html" />
+    
+    <!-- অ্যাপের আইকন সেট করার ট্যাগ -->
+    <icon src="icon.png" />
+
     <allow-intent href="http://*/*" />
     <allow-intent href="https://*/*" />
     <preference name="orientation" value="default" />
