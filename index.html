@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>D.C Entry App</title>
-    <!-- html2pdf লাইব্রেরি যুক্ত করা হয়েছে যাতে অ্যাপের ভেতরে ডাইরেক্ট পিডিএফ জেনারেট ও শেয়ার করা যায় -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <!-- অ্যাপের ভেতরে ক্যানভাস দিয়ে পারফেক্ট ইমেজ ও পিডিএফ বানানোর জন্য লাইব্রেরি -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         * {
             box-sizing: border-box;
@@ -532,31 +532,21 @@
         }
         .fs-btn-row {
             display: flex;
-            gap: 10px;
+            gap: 6px;
             margin-top: 10px;
             width: 100%;
         }
         .fs-primary-btn {
             flex: 1;
-            padding: 12px;
+            padding: 10px 4px;
             background: #198754;
             color: #fff;
             border: none;
             border-radius: 10px;
             font-weight: bold;
-            font-size: 14px;
+            font-size: 11px;
             cursor: pointer;
-        }
-        .fs-secondary-btn {
-            flex: 1;
-            padding: 12px;
-            background: #64748b;
-            color: #fff;
-            border: none;
-            border-radius: 10px;
-            font-weight: bold;
-            font-size: 14px;
-            cursor: pointer;
+            text-align: center;
         }
 
         /* হিস্ট্রি পেজ কার্ড ও সিলেক্ট স্টাইল */
@@ -947,7 +937,7 @@
                 </div>
                 <div class="fs-btn-row">
                     <button class="fs-primary-btn" onclick="saveSellerDetails()">SAVE</button>
-                    <button class="fs-secondary-btn" onclick="closeSellerFullscreen()">CANCEL</button>
+                    <button class="fs-primary-btn" style="background:#64748b;" onclick="closeSellerFullscreen()">CANCEL</button>
                 </div>
             </div>
         </div>
@@ -980,7 +970,7 @@
                     </div>
                 </div>
                 <div style="display: flex; gap: 8px; width: 100%; margin-bottom: 4px;">
-                    <button class="fs-secondary-btn" style="padding: 6px; font-size: 11px;" onclick="resetHistoryFilters()">RESET</button>
+                    <button class="fs-primary-btn" style="background:#64748b; padding: 6px; font-size: 11px;" onclick="resetHistoryFilters()">RESET</button>
                     <button class="fs-primary-btn" id="deleteSelectedBtn" style="padding: 6px; font-size: 11px; background: #dc3545; display: none;" onclick="deleteSelectedHistoryItems()">DELETE SELECTED</button>
                 </div>
 
@@ -1029,8 +1019,8 @@
             <div class="pdf-body-content" id="pdfBodyContent">
             </div>
             <div class="fs-btn-row" style="max-width: 100%; padding: 0 4px 4px 4px; flex-shrink: 0;">
-                <button class="fs-primary-btn" style="background:#0284c7; padding: 6px; font-size:12px;" onclick="sharePdfAction()">SHARE PDF</button>
-                <button class="fs-primary-btn" style="padding: 6px; font-size:12px;" onclick="shareDetailsAction()">SHARE WHATSAPP</button>
+                <button class="fs-primary-btn" style="background:#0284c7;" onclick="shareImageAction()">SHARE IMAGE</button>
+                <button class="fs-primary-btn" style="background:#059669;" onclick="shareDetailsAction()">WHATSAPP TEXT</button>
             </div>
         </div>
     </div>
@@ -1592,35 +1582,32 @@
             document.getElementById('pdfFullscreenPage').style.display = 'flex';
         }
 
-        // অ্যাপের ভেতরে সফলভাবে পিডিএফ তৈরি ও ডাউনলোড বা শেয়ার করার ফাংশন
-        function sharePdfAction() {
+        // পুরো রিপোর্টটি ইমেজ (PNG) আকারে তৈরি করে শেয়ার বা ডাউনলোড করার ফাংশন
+        function shareImageAction() {
             if (!currentViewingRecord) return;
             let s = currentViewingRecord.seller;
-            let fileName = `${s.farmerName || 'FARMER'} To ${s.traderName || 'TRADER'} (${s.date || todayFormatted}).pdf`;
+            let fileName = `${s.farmerName || 'FARMER'} To ${s.traderName || 'TRADER'} (${s.date || todayFormatted}).png`;
 
             let element = document.getElementById('pdfBodyContent');
-            let opt = {
-                margin:       5,
-                filename:     fileName,
-                image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { scale: 2, useCORS: true },
-                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-            };
-
-            // html2pdf লাইব্রেরি ব্যবহার করে ডাইরেক্ট পিডিএফ ফাইল তৈরি ও ডাউনলোড করবে
-            html2pdf().from(element).set(opt).outputPdf('blob').then(function(pdfBlob) {
-                let file = new File([pdfBlob], fileName, { type: 'application/pdf' });
-                
-                if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                    navigator.share({
-                        files: [file],
-                        title: fileName,
-                        text: 'Here is your D.C Statement PDF.'
-                    }).catch(() => {});
-                } else {
-                    // শেয়ার এপিআই না থাকলে অটোমেটিক ডাউনলোড হয়ে যাবে
-                    html2pdf().from(element).set(opt).save();
-                }
+            
+            html2canvas(element, { scale: 3, useCORS: true }).then(canvas => {
+                canvas.toBlob(function(blob) {
+                    let file = new File([blob], fileName, { type: 'image/png' });
+                    
+                    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                        navigator.share({
+                            files: [file],
+                            title: fileName,
+                            text: `DC Statement: ${s.farmerName} To ${s.traderName}`
+                        }).catch(() => {});
+                    } else {
+                        // শেয়ার এপিআই সাপোর্ট না করলে ইমেজ সরাসরি ডাউনলোড হবে
+                        let link = document.createElement('a');
+                        link.download = fileName;
+                        link.href = canvas.toDataURL('image/png');
+                        link.click();
+                    }
+                });
             });
         }
 
