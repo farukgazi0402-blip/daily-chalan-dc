@@ -1071,7 +1071,7 @@
             </div>
             <div class="fs-btn-row" style="max-width: 100%; padding: 0 4px 4px 4px; flex-shrink: 0;">
                 <button class="fs-primary-btn" style="background:#0284c7; padding: 6px; font-size:12px;" onclick="sharePdfAction()">SHARE PDF</button>
-                <button class="fs-primary-btn" style="padding: 6px; font-size:12px;" onclick="shareDetailsAction()">SHARE DETAILS</button>
+                <button class="fs-primary-btn" style="padding: 6px; font-size:12px;" onclick="shareDetailsAction()">SHARE WHATSAPP</button>
             </div>
         </div>
     </div>
@@ -1527,7 +1527,9 @@
             let s = record.seller;
             let data = record.data;
 
-            document.getElementById('pdfModalTitle').innerText = `${s.farmerName} - ${s.traderName}`;
+            // ফর্ম্যাট করা ফাইলের নাম: [Farmer] To [Trader] ([Date])
+            let customFileName = `${s.farmerName || 'FARMER'} To ${s.traderName || 'TRADER'} (${s.date || todayFormatted})`;
+            document.getElementById('pdfModalTitle').innerText = customFileName;
 
             let freshTotW = 0, freshTotP = 0;
             let lameTotW = 0, lameTotP = 0;
@@ -1632,16 +1634,15 @@
         }
 
         function sharePdfAction() {
-            // অ্যান্ড্রয়েড অ্যাপের ভেতরে প্রিন্ট বা পিডিএফ জেনারেট করার সময় অ্যান্ড্রয়েড ওয়েবভিউ (WebView) ক্র্যাশ রোধ করতে ট্রাই-ক্যাচ ও ফলব্যাক ব্যবহার করা হয়েছে
+            // অ্যাপের WebView-এ প্রিন্ট/সেভ পিডিএফ ট্রিগার করার জন্য সুসংহত লজিক
             try {
-                window.print();
-            } catch (err) {
-                // যদি অ্যাপের ভেতরে ডাইরেক্ট প্রিন্ট না হয়, তবে ব্যবহারকারীকে বিকল্প নোটিফিকেশন বা শেয়ার অপশন দেওয়া হবে
-                if (typeof Android !== 'undefined' && Android.print) {
-                    Android.print();
+                if (typeof Android !== 'undefined' && Android.printPdf) {
+                    Android.printPdf();
                 } else {
                     window.print();
                 }
+            } catch (err) {
+                window.print();
             }
         }
 
@@ -1688,30 +1689,28 @@
                               `*DATE:* ${s.date}\n` +
                               `*LOADING TIME:* ${s.loadingTime || 'N/A'}\n` +
                               `*DISPATCH TIME:* ${s.dispatchTime || 'N/A'}\n\n` +
-                              `*--- DETAILED SUMMARY ---*\n` +
-                              `*FRESH BIRD ->*\n` +
-                              `PICS: ${freshTotP}\n` +
-                              `WEIGHT: ${freshTotW.toFixed(1)}\n` +
-                              `AVG: ${freshAvg}\n` +
-                              `*LAME BIRD ->*\n` +
-                              `PICS: ${lameTotP}\n` +
-                              `WEIGHT: ${lameTotW.toFixed(1)}\n` +
-                              `AVG: ${lameAvg}\n` +
-                              `*MAGGOT BIRD ->* PICS: ${maggotTotP}\n` +
-                              `WEIGHT: ${maggotTotW.toFixed(1)}\n` +
-                              `AVG: ${maggotAvg}\n\n` +
+                              `*--- SUMMARY ---*\n` +
+                              `*FRESH:* PICS: ${freshTotP} | WT: ${freshTotW.toFixed(1)} | AVG: ${freshAvg}\n` +
+                              `*LAME:* PICS: ${lameTotP} | WT: ${lameTotW.toFixed(1)} | AVG: ${lameAvg}\n` +
+                              `*MAGGOT:* PICS: ${maggotTotP} | WT: ${maggotTotW.toFixed(1)} | AVG: ${maggotAvg}\n\n` +
                               `*TOTAL PICS:* ${overallTotP}\n` +
                               `*TOTAL WEIGHT:* ${overallTotW.toFixed(1)}\n` +
                               `*OVERALL AVG:* ${overallAvg}`;
 
+            // সরাসরি WhatsApp-এ শেয়ার করার জন্য wa.me লিঙ্ক অথবা Web Share API ব্যবহার করা হয়েছে যা অ্যাপে সফলভাবে কাজ করবে
+            let encodedText = encodeURIComponent(detailsText);
+            let whatsappUrl = `https://api.whatsapp.com/send?text=${encodedText}`;
+
             if (navigator.share) {
                 navigator.share({
-                    title: 'DC DETAILS',
+                    title: `${s.farmerName} To ${s.traderName}`,
                     text: detailsText
-                }).catch(() => {});
+                }).catch(() => {
+                    window.open(whatsappUrl, '_blank');
+                });
             } else {
-                navigator.clipboard.writeText(detailsText);
-                showCustomAlert("COPIED", "DC DETAILS COPIED TO CLIPBOARD!");
+                // ব্রাউজার বা অ্যাপে শেয়ার API না থাকলে সরাসরি হোয়াটসঅ্যাপ অ্যাপে টেক্সট ওপেন হবে
+                window.open(whatsappUrl, '_blank');
             }
         }
 
