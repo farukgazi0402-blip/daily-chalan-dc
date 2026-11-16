@@ -25,8 +25,13 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Add Android Platform
-        run: cordova platform add android --nofetch
+      - name: Prepare Cordova Project Structure
+        run: |
+          mkdir -p www
+          # যদি আপনার index.html রুট ফোল্ডারে থাকে, তবে তা www ফোল্ডারে সরিয়ে নেওয়া হবে
+          if [ -f index.html ]; then cp index.html www/; fi
+          # config.xml ফাইলটি যদি বাইরে থাকে তা সঠিক জায়গায় নিশ্চিত করা
+          cordova platform add android --nofetch
 
       - name: Build Release APK
         run: cordova build android --release
