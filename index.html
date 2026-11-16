@@ -1,0 +1,2061 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>D.C Entry App</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: Impact, Haettenschweiler, "Arial Black", sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        html, body {
+            height: 100%;
+            width: 100%;
+            background-color: #f8f9fa;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: fixed;
+            top: 0;
+            left: 0;
+        }
+        
+        /* মূল স্ক্রিনের কলাম কন্টেইনার */
+        .columns-container {
+            display: flex;
+            flex: 1;
+            min-height: 0;
+            background: #fff;
+            border-bottom: 2px solid #e9ecef;
+            overflow-x: auto;
+            white-space: nowrap;
+            position: relative;
+            width: 100%;
+        }
+
+        /* ভাসমান লাইভ ডিসপ্লে (হালকা লাল কালার করা হয়েছে) */
+        .floating-live-display {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 75px;
+            font-weight: 900;
+            color: rgba(220, 53, 69, 0.25);
+            pointer-events: none;
+            z-index: 10;
+            letter-spacing: 4px;
+            text-align: center;
+            width: 100%;
+        }
+
+        /* ৫টি কলামের চওড়া নিখুঁতভাবে সমান করা হয়েছে */
+        .column {
+            flex: 1 1 20%;
+            min-width: 0;
+            width: 20%;
+            border-right: 1px solid #cbd5e1;
+            display: flex;
+            flex-direction: column;
+            font-size: 13px;
+            cursor: pointer;
+        }
+        .column:last-child {
+            border-right: none;
+        }
+        
+        /* কলামের ভেতরে এন্ট্রি দেখানোর স্পেস */
+        .column-entries {
+            flex: 1;
+            padding: 1px 1px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+        }
+        
+        /* প্রতি কলামের নিচের ফুটার */
+        .column-footer {
+            background: #f1f3f5;
+            border-top: 1px solid #dee2e6;
+            padding: 3px 2px;
+            text-align: center;
+            font-size: 10px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-weight: bold;
+            color: #495057;
+            flex-shrink: 0;
+        }
+
+        /* এন্ট্রি আইটেম (মাঝ বরাবর) */
+        .entry-item {
+            padding: 3px 1px;
+            border-bottom: 1px dashed #e2e8f0;
+            text-align: center;
+            display: flex;
+            justify-content: center;
+            align-items: baseline;
+            gap: 3px;
+            white-space: nowrap;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        /* পিস সাইজ */
+        .entry-pics {
+            font-size: 13px;
+            font-weight: bold;
+            color: #000000;
+        }
+
+        /* ওজনের ফন্ট: ফ্রেশ (নীল), ল্যাম (লাল), ম্যাগট (বেগুনি) */
+        .weight-fresh {
+            font-size: 17px;
+            font-weight: bold;
+            color: #0047ab;
+        }
+        .weight-lame {
+            font-size: 17px;
+            font-weight: bold;
+            color: #dc3545;
+        }
+        .weight-maggot {
+            font-size: 17px;
+            font-weight: bold;
+            color: #8b5cf6;
+        }
+
+        /* Dual Summary Bar */
+        .dual-summary-container {
+            background: #f1f3f5;
+            border-top: 1px solid #dee2e6;
+            border-bottom: 1px solid #dee2e6;
+            font-size: 11px;
+            font-weight: bold;
+            flex-shrink: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+        .summary-row {
+            display: flex;
+            justify-content: space-around;
+            padding: 4px 6px;
+        }
+        .summary-row.fresh-row {
+            color: #0047ab;
+        }
+        .summary-row.lame-row {
+            border-top: 1px dashed #ced4da;
+            color: #dc3545;
+            padding: 3px 8px;
+            justify-content: space-around;
+        }
+        .summary-row.maggot-row {
+            border-top: 1px dashed #ced4da;
+            color: #8b5cf6;
+            padding: 3px 8px;
+            justify-content: space-around;
+        }
+
+        /* Combined Overall Summary Bar */
+        .summary-bar {
+            background: #e9ecef;
+            padding: 8px 10px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            font-size: 13px;
+            font-weight: bold;
+            border-bottom: 1px solid #dee2e6;
+            color: #212529;
+            flex-shrink: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        /* Mode & Type Buttons Row (PICS, F, L, M) */
+        .mode-row {
+            display: flex;
+            gap: 4px;
+            padding: 6px 8px;
+            background: #ffffff;
+            border-top: 1px solid #dee2e6;
+            flex-shrink: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+        .mode-btn {
+            flex: 1;
+            padding: 8px 2px;
+            background: #f1f3f5;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: bold;
+            color: #495057;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.15s;
+        }
+        .mode-btn:active {
+            background: #e2e8f0;
+        }
+        .mode-btn.active {
+            background: #198754;
+            color: #ffffff;
+            border-color: #157347;
+        }
+        .mode-btn.active-type-f {
+            background: #0047ab;
+            color: #ffffff;
+            border-color: #003380;
+        }
+        .mode-btn.active-type-l {
+            background: #dc3545;
+            color: #ffffff;
+            border-color: #b02a37;
+        }
+        .mode-btn.active-type-m {
+            background: #8b5cf6;
+            color: #ffffff;
+            border-color: #7c3aed;
+        }
+
+        /* Calculator Keypad Section */
+        .keypad-section {
+            background: #f1f3f5;
+            padding: 6px;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+            flex-shrink: 0;
+            border-top: 1px solid #ced4da;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+        .key-btn {
+            background: #ffffff;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            padding: 15px 0;
+            font-size: 17px;
+            font-weight: bold;
+            color: #212529;
+            cursor: pointer;
+            text-align: center;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            transition: background 0.1s;
+        }
+        .key-btn:active {
+            background: #d1e7dd;
+            border-color: #198754;
+        }
+        .key-btn.action {
+            background: #e2e8f0;
+            color: #1e293b;
+        }
+        .key-btn.enter {
+            background: #198754;
+            color: #ffffff;
+            border-color: #157347;
+            grid-row: span 2;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .key-btn.menu-btn {
+            background: #0f172a;
+            color: #ffffff;
+            border-color: #0f172a;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-size: 14px;
+        }
+
+        /* পিস সিলেকশন পপআপ স্ক্রিন */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+        .modal-content {
+            background: #ffffff;
+            padding: 18px;
+            border-radius: 14px;
+            width: 320px;
+            text-align: center;
+            box-shadow: 0 6px 25px rgba(0,0,0,0.35);
+        }
+        .modal-title {
+            font-size: 15px;
+            font-weight: bold;
+            margin-bottom: 12px;
+            color: #212529;
+        }
+        .modal-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .modal-num-btn {
+            padding: 12px 6px;
+            background: #f8f9fa;
+            border: 1px solid #ced4da;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #212529;
+            cursor: pointer;
+            transition: all 0.1s;
+        }
+        .modal-num-btn:active {
+            background: #198754;
+            color: #fff;
+        }
+        .modal-close-btn {
+            padding: 9px 20px;
+            background: #6c757d;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        /* Premium Action Modal */
+        .action-modal-content {
+            background: #ffffff;
+            padding: 22px;
+            border-radius: 16px;
+            width: 260px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+            animation: popIn 0.2s ease-out;
+        }
+        @keyframes popIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .action-title {
+            font-size: 15px;
+            font-weight: bold;
+            margin-bottom: 18px;
+            color: #1e293b;
+        }
+        .action-btn-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+        .action-edit-btn {
+            flex: 1;
+            padding: 10px;
+            background: #0284c7;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .action-delete-btn {
+            flex: 1;
+            padding: 10px;
+            background: #dc3545;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .action-cancel-btn {
+            width: 100%;
+            padding: 8px;
+            background: #f1f3f5;
+            color: #495057;
+            border: 1px solid #ced4da;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        /* Fullscreen Page Styles */
+        .fullscreen-page {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #f8fafc;
+            display: none;
+            flex-direction: column;
+            z-index: 2500;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            text-transform: uppercase;
+        }
+        
+        .fs-header {
+            background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+            color: #1e293b;
+            padding: 5px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            font-weight: 800;
+            flex-shrink: 0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+            border-bottom: 1px solid #cbd5e1;
+        }
+        .fs-header-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .fs-back-btn {
+            font-size: 11px;
+            font-weight: bold;
+            cursor: pointer;
+            padding: 3px 8px;
+            border-radius: 4px;
+            background: #ffffff;
+            transition: all 0.2s;
+            border: 1px solid #94a3b8;
+            color: #334155;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+        }
+        .fs-close-cross {
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: #ffffff;
+            transition: all 0.2s;
+            border: 1px solid #94a3b8;
+            color: #334155;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+        }
+
+        .fs-body {
+            flex: 1;
+            padding: 16px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .fs-content-box {
+            width: 100%;
+            max-width: 500px;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .fs-menu-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            width: 100%;
+        }
+        .fs-menu-card {
+            padding: 20px 14px;
+            border-radius: 14px;
+            font-size: 13px;
+            font-weight: 800;
+            color: #1e293b;
+            cursor: pointer;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            border: 1px solid rgba(0,0,0,0.06);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+        }
+        .card-seller { background: linear-gradient(135deg, #e0f2fe, #bae6fd); border-color: #7dd3fc; color: #0369a1; }
+        .card-history { background: linear-gradient(135deg, #ede9fe, #ddd6fe); border-color: #c4b5fd; color: #6d28d9; }
+        .card-save { background: linear-gradient(135deg, #dcfce7, #bbf7d0); border-color: #86efac; color: #15803d; }
+        .card-new { background: linear-gradient(135deg, #ffedd5, #fed7aa); border-color: #fdba74; color: #c2410c; }
+        .card-settings { background: linear-gradient(135deg, #f1f5f9, #e2e8f0); border-color: #cbd5e1; color: #334155; }
+
+        .fs-menu-card span.icon {
+            font-size: 26px;
+        }
+
+        .fs-form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            text-align: left;
+            width: 100%;
+        }
+        .fs-form-group label {
+            font-size: 11px;
+            font-weight: 700;
+            color: #64748b;
+        }
+        .fs-form-group input {
+            width: 100%;
+            padding: 11px 14px;
+            border: 1px solid #cbd5e1;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: bold;
+            color: #0f172a;
+            background: #f8fafc;
+            text-transform: uppercase;
+            outline: none;
+        }
+        .fs-btn-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            width: 100%;
+        }
+        .fs-primary-btn {
+            flex: 1;
+            padding: 12px;
+            background: #198754;
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            font-weight: bold;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .fs-secondary-btn {
+            flex: 1;
+            padding: 12px;
+            background: #64748b;
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            font-weight: bold;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        /* হিস্ট্রি পেজ কার্ড ও সিলেক্ট স্টাইল */
+        .fs-history-card {
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            border-radius: 12px;
+            padding: 12px 14px;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+            margin-bottom: 8px;
+            width: 100%;
+            border-left: 5px solid #0284c7;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: all 0.1s;
+        }
+        .fs-history-card.selected {
+            background: #e0f2fe;
+            border-color: #0284c7;
+            border-left-width: 8px;
+        }
+        .fs-history-info {
+            flex: 1;
+        }
+        .fs-history-farmer {
+            font-size: 14px;
+            font-weight: 800;
+            color: #0f172a;
+            margin-bottom: 2px;
+        }
+        .fs-history-trader {
+            font-size: 12px;
+            font-weight: 700;
+            color: #334155;
+            margin-bottom: 4px;
+        }
+        .fs-history-sub {
+            font-size: 10px;
+            font-weight: 600;
+            color: #64748b;
+            display: flex;
+            justify-content: space-between;
+        }
+        .history-checkbox {
+            width: 20px;
+            height: 20px;
+            accent-color: #dc3545;
+            margin-left: 10px;
+            display: none;
+            cursor: pointer;
+        }
+
+        /* Custom Alert */
+        .custom-alert-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 5000;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+        .custom-alert-content {
+            background: #ffffff;
+            padding: 24px;
+            border-radius: 16px;
+            width: 290px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+            text-transform: uppercase;
+        }
+        .custom-alert-title {
+            font-size: 16px;
+            font-weight: 800;
+            color: #dc3545;
+            margin-bottom: 10px;
+        }
+        .custom-alert-msg {
+            font-size: 13px;
+            font-weight: 600;
+            color: #334155;
+            margin-bottom: 20px;
+            line-height: 1.4;
+        }
+        .custom-alert-btn-container {
+            display: flex;
+            gap: 8px;
+        }
+        .custom-alert-btn {
+            flex: 1;
+            padding: 10px;
+            background: #0f172a;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 13px;
+            cursor: pointer;
+        }
+        .custom-alert-btn.cancel {
+            background: #64748b;
+        }
+
+        /* পিডিএফ প্রিভিউ পেজ স্টাইল */
+        .pdf-body-content {
+            padding: 4px 8px;
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+            margin-bottom: 4px;
+            width: 100%;
+            max-width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .pdf-doc-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+            border-bottom: 2px solid #0f172a;
+            padding-bottom: 3px;
+            align-items: flex-start;
+            flex-shrink: 0;
+        }
+        .pdf-doc-left {
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+        }
+        .pdf-doc-right {
+            text-align: right;
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+            font-size: 10px;
+            font-weight: bold;
+            color: #1e293b;
+            white-space: nowrap;
+        }
+        
+        .pdf-farmer-name {
+            font-size: 13px;
+            font-weight: 900;
+            color: #0f172a;
+            letter-spacing: 0.5px;
+        }
+        .pdf-trader-name {
+            font-size: 11px;
+            font-weight: 800;
+            color: #0284c7;
+            letter-spacing: 0.5px;
+        }
+        .pdf-meta-text {
+            font-size: 9px;
+            font-weight: bold;
+            color: #475569;
+        }
+        
+        .pdf-columns-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 2px;
+            margin-bottom: 4px;
+            border: 1px solid #94a3b8;
+            background: #fff;
+            padding: 3px 2px;
+            border-radius: 6px;
+            width: 100%;
+            flex: 1;
+            overflow: hidden;
+        }
+        .pdf-col-box {
+            border-right: 1px solid #cbd5e1;
+            padding: 0 1px;
+            min-width: 0;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+        }
+        .pdf-col-box:nth-child(5n) {
+            border-right: none;
+        }
+        .pdf-col-title {
+            font-size: 9px;
+            font-weight: 800;
+            text-align: center;
+            color: #ffffff;
+            background: #0f172a;
+            margin-bottom: 2px;
+            border-radius: 2px;
+            padding: 2px 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            flex-shrink: 0;
+        }
+        .pdf-col-entries-list {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .pdf-entry-row {
+            font-size: 10px;
+            text-align: center;
+            padding: 1px 0;
+            border-bottom: 1px dashed #e2e8f0;
+            font-family: Impact, sans-serif;
+            letter-spacing: 0.2px;
+            white-space: nowrap;
+            display: flex;
+            justify-content: center;
+            align-items: baseline;
+            gap: 1px;
+        }
+        .pdf-summary-box {
+            background: #f1f3f5;
+            border: 1px solid #94a3b8;
+            border-radius: 6px;
+            padding: 5px 8px;
+            font-size: 10px;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+        .pdf-summary-line {
+            display: flex;
+            justify-content: space-around;
+            padding: 2px 0;
+        }
+
+        /* Print Media Style for A4 & A5 */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #pdfFullscreenPage, #pdfFullscreenPage * {
+                visibility: visible;
+            }
+            #pdfFullscreenPage {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                height: 100%;
+                background: #fff;
+                padding: 0;
+            }
+            .fs-header, .fs-btn-row {
+                display: none;
+            }
+            .fs-body {
+                padding: 0;
+                background: #fff;
+            }
+            .pdf-body-content {
+                border: none;
+                box-shadow: none;
+                padding: 4mm 6mm;
+                height: 100vh;
+            }
+            .pdf-farmer-name { font-size: 15px !important; }
+            .pdf-trader-name { font-size: 13px !important; }
+            .pdf-meta-text { font-size: 10px !important; }
+            .pdf-doc-right { font-size: 10px !important; }
+            .pdf-col-title { font-size: 11px !important; padding: 2px 0 !important; }
+            .pdf-entry-row { font-size: 12px !important; padding: 1px 0 !important; }
+            .pdf-entry-row .entry-pics { font-size: 10px !important; }
+            .pdf-summary-box { font-size: 11px !important; padding: 6px !important; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Columns Area with Floating Live Display Text -->
+    <div class="columns-container" id="columnsContainer">
+        <div class="floating-live-display" id="floatingDisplay"></div>
+    </div>
+
+    <!-- Dual Summary Bar -->
+    <div class="dual-summary-container">
+        <div class="summary-row fresh-row" id="freshSummary">
+            <span>FRESH [PIC: 0]</span>
+            <span>WT: 0.0</span>
+            <span>AVG: 0.00</span>
+        </div>
+        <div class="summary-row lame-row" id="lameSummary">
+            <span>LAME [PIC: 0]</span>
+            <span>WT: 0.0</span>
+            <span>AVG: 0.00</span>
+        </div>
+        <div class="summary-row maggot-row" id="maggotSummary">
+            <span>MAGGOT [PIC: 0]</span>
+            <span>WT: 0.0</span>
+            <span>AVG: 0.00</span>
+        </div>
+    </div>
+
+    <!-- Combined Overall Summary Bar -->
+    <div class="summary-bar" id="summaryBar">
+        <span>TOTAL PIC-0</span>
+        <span>TOTAL WT-0.0</span>
+        <span>AVG-0.00</span>
+    </div>
+
+    <!-- Mode & Type Buttons Row (PICS, F, L, M) -->
+    <div class="mode-row">
+        <button class="mode-btn active" id="btnModeManual" onclick="openManualModal()"><span id="manualLabel">PICS (10)</span></button>
+        <button class="mode-btn active-type-f" id="btnTypeF" onclick="setBirdType('F')">F</button>
+        <button class="mode-btn" id="btnTypeL" onclick="setBirdType('L')">L</button>
+        <button class="mode-btn" id="btnTypeM" onclick="setBirdType('M')">M</button>
+    </div>
+
+    <!-- Calculator Keypad Section -->
+    <div class="keypad-section">
+        <button class="key-btn" onclick="appendKey('7')">7</button>
+        <button class="key-btn" onclick="appendKey('8')">8</button>
+        <button class="key-btn" onclick="appendKey('9')">9</button>
+        <button class="key-btn action" onclick="deleteKey()">⌫</button>
+        
+        <button class="key-btn" onclick="appendKey('4')">4</button>
+        <button class="key-btn" onclick="appendKey('5')">5</button>
+        <button class="key-btn" onclick="appendKey('6')">6</button>
+        <button class="key-btn menu-btn" onclick="openMenuFullscreen()">MENU</button>
+        
+        <button class="key-btn" onclick="appendKey('1')">1</button>
+        <button class="key-btn" onclick="appendKey('2')">2</button>
+        <button class="key-btn" onclick="appendKey('3')">3</button>
+        <button class="key-btn enter" onclick="submitEntry()" rowspan="2">ENTER</button>
+
+        <button class="key-btn action" onclick="clearInput()">C</button>
+        <button class="key-btn" onclick="appendKey('0')">0</button>
+        <button class="key-btn" onclick="appendKey('.')">.</button>
+    </div>
+
+    <!-- Custom Modal for 1 to 15 Manual Selection -->
+    <div class="modal-overlay" id="manualModal">
+        <div class="modal-content">
+            <div class="modal-title">SELECT PICS (1 TO 15)</div>
+            <div class="modal-grid" id="modalGrid"></div>
+            <button class="modal-close-btn" onclick="closeManualModal()">CANCEL</button>
+        </div>
+    </div>
+
+    <!-- FULLSCREEN MENU PAGE -->
+    <div class="fullscreen-page" id="menuFullscreenPage">
+        <div class="fs-header">
+            <div class="fs-header-left">
+                <button class="fs-back-btn" onclick="closeMenuFullscreen()">← BACK</button>
+                <span>APP MENU</span>
+            </div>
+            <span class="fs-close-cross" onclick="closeAllFullscreenPages()">✕</span>
+        </div>
+        <div class="fs-body">
+            <div class="fs-content-box" style="max-width: 440px;">
+                <div class="fs-menu-grid">
+                    <div class="fs-menu-card card-seller" onclick="selectMenuOption('Sell Details')">
+                        <span class="icon">👤</span>
+                        <span>SELL DETAILS</span>
+                    </div>
+                    <div class="fs-menu-card card-history" onclick="selectMenuOption('History')">
+                        <span class="icon">📋</span>
+                        <span>HISTORY</span>
+                    </div>
+                    <div class="fs-menu-card card-save" onclick="selectMenuOption('Save DC')">
+                        <span class="icon">💾</span>
+                        <span>SAVE DC</span>
+                    </div>
+                    <div class="fs-menu-card card-new" onclick="selectMenuOption('New DC')">
+                        <span class="icon">🔄</span>
+                        <span>NEW DC</span>
+                    </div>
+                    <div class="fs-menu-card card-settings" onclick="selectMenuOption('Settings')" style="grid-column: span 2;">
+                        <span class="icon">⚙️</span>
+                        <span>SETTINGS</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FULLSCREEN SELL DETAILS PAGE -->
+    <div class="fullscreen-page" id="sellerFullscreenPage">
+        <div class="fs-header">
+            <div class="fs-header-left">
+                <button class="fs-back-btn" onclick="closeSellerFullscreen()">← BACK</button>
+                <span>SELL DETAILS</span>
+            </div>
+            <span class="fs-close-cross" onclick="closeAllFullscreenPages()">✕</span>
+        </div>
+        <div class="fs-body">
+            <div class="fs-content-box">
+                <div class="fs-form-group">
+                    <label>DATE</label>
+                    <input type="date" id="sellerDateInput">
+                </div>
+                <div class="fs-form-group">
+                    <label>TRADER NAME</label>
+                    <input type="text" id="traderName" placeholder="ENTER TRADER NAME">
+                </div>
+                <div class="fs-form-group">
+                    <label>FARMER NAME</label>
+                    <input type="text" id="farmerName" placeholder="ENTER FARMER NAME">
+                </div>
+                <div class="fs-form-group">
+                    <label>ADDRESS (OPTIONAL)</label>
+                    <input type="text" id="sellerAddress" placeholder="ENTER ADDRESS">
+                </div>
+                <div class="fs-form-group">
+                    <label>CAR NUMBER (OPTIONAL)</label>
+                    <input type="text" id="carNumber" placeholder="ENTER CAR NUMBER">
+                </div>
+                <div class="fs-form-group">
+                    <label>LOADING TIME</label>
+                    <input type="text" id="loadingTime" readonly placeholder="AUTO SET ON FIRST ENTRY">
+                </div>
+                <div class="fs-form-group">
+                    <label>DISPATCH TIME</label>
+                    <input type="text" id="dispatchTime" readonly placeholder="AUTO SET ON LAST ENTRY">
+                </div>
+                <div class="fs-btn-row">
+                    <button class="fs-primary-btn" onclick="saveSellerDetails()">SAVE</button>
+                    <button class="fs-secondary-btn" onclick="closeSellerFullscreen()">CANCEL</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FULLSCREEN HISTORY LIST PAGE (Search, Date Filter, Multi-Delete & Long-Press) -->
+    <div class="fullscreen-page" id="historyFullscreenPage">
+        <div class="fs-header">
+            <div class="fs-header-left">
+                <button class="fs-back-btn" onclick="closeHistoryFullscreen()">← BACK</button>
+                <span>SAVED DC HISTORY</span>
+            </div>
+            <span class="fs-close-cross" onclick="closeAllFullscreenPages()">✕</span>
+        </div>
+        <div class="fs-body">
+            <div class="fs-content-box" style="max-width: 500px; gap: 8px;">
+                <!-- Search Box -->
+                <div class="fs-form-group" style="margin-bottom: 0;">
+                    <label>SEARCH (CUSTOMER / FARMER)</label>
+                    <input type="text" id="historySearchInput" placeholder="TYPE NAME TO SEARCH..." oninput="filterHistoryList()">
+                </div>
+
+                <!-- Date Range Filter -->
+                <div style="display: flex; gap: 8px; width: 100%;">
+                    <div class="fs-form-group" style="flex: 1; margin-bottom: 0;">
+                        <label>FROM DATE</label>
+                        <input type="date" id="filterStartDate" onchange="filterHistoryList()">
+                    </div>
+                    <div class="fs-form-group" style="flex: 1; margin-bottom: 0;">
+                        <label>TO DATE</label>
+                        <input type="date" id="filterEndDate" onchange="filterHistoryList()">
+                    </div>
+                </div>
+                <div style="display: flex; gap: 8px; width: 100%; margin-bottom: 4px;">
+                    <button class="fs-secondary-btn" style="padding: 6px; font-size: 11px;" onclick="resetHistoryFilters()">RESET</button>
+                    <button class="fs-primary-btn" id="deleteSelectedBtn" style="padding: 6px; font-size: 11px; background: #dc3545; display: none;" onclick="deleteSelectedHistoryItems()">DELETE SELECTED</button>
+                </div>
+
+                <!-- History Cards Container -->
+                <div id="historyItemsContainer" style="width: 100%; display: flex; flex-direction: column; gap: 8px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FULLSCREEN SETTINGS PAGE (Backup & Restore TXT) -->
+    <div class="fullscreen-page" id="settingsFullscreenPage">
+        <div class="fs-header">
+            <div class="fs-header-left">
+                <button class="fs-back-btn" onclick="closeSettingsFullscreen()">← BACK</button>
+                <span>SETTINGS & BACKUP</span>
+            </div>
+            <span class="fs-close-cross" onclick="closeAllFullscreenPages()">✕</span>
+        </div>
+        <div class="fs-body">
+            <div class="fs-content-box" style="max-width: 440px; gap: 15px;">
+                <div style="font-size: 14px; font-weight: bold; color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px;">DATA BACKUP & RESTORE</div>
+                
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                    <label style="font-size: 11px; font-weight: 700; color: #64748b;">BACKUP TO TXT FILE</label>
+                    <button class="fs-primary-btn" style="background: #0284c7;" onclick="backupDataToFile()">DOWNLOAD BACKUP (.TXT)</button>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 10px;">
+                    <label style="font-size: 11px; font-weight: 700; color: #64748b;">RESTORE FROM TXT FILE</label>
+                    <input type="file" id="restoreFileInput" accept=".txt" style="display: none;" onchange="restoreDataFromFile(event)">
+                    <button class="fs-primary-btn" style="background: #d97706;" onclick="document.getElementById('restoreFileInput').click()">UPLOAD & RESTORE (.TXT)</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FULLSCREEN PREVIEW PAGE -->
+    <div class="fullscreen-page" id="pdfFullscreenPage">
+        <div class="fs-header">
+            <div class="fs-header-left">
+                <button class="fs-back-btn" onclick="closePdfFullscreen()">← BACK</button>
+                <span id="pdfModalTitle">DC STATEMENT PREVIEW</span>
+            </div>
+            <span class="fs-close-cross" onclick="closeAllFullscreenPages()">✕</span>
+        </div>
+        <div class="fs-body" style="padding: 4px; background: #fff;">
+            <div class="pdf-body-content" id="pdfBodyContent">
+            </div>
+            <div class="fs-btn-row" style="max-width: 100%; padding: 0 4px 4px 4px; flex-shrink: 0;">
+                <button class="fs-primary-btn" style="background:#0284c7; padding: 6px; font-size:12px;" onclick="sharePdfAction()">SHARE PDF</button>
+                <button class="fs-primary-btn" style="padding: 6px; font-size:12px;" onclick="shareDetailsAction()">SHARE DETAILS</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Modal -->
+    <div class="modal-overlay" id="actionModal">
+        <div class="action-modal-content">
+            <div class="action-title" id="actionModalTitle">SELECT ACTION</div>
+            <div class="action-btn-container">
+                <button class="action-edit-btn" onclick="editSelectedEntry()">EDIT</button>
+                <button class="action-delete-btn" onclick="deleteSelectedEntry()">DELETE</button>
+            </div>
+            <button class="action-cancel-btn" onclick="closeActionModal()">CANCEL</button>
+        </div>
+    </div>
+
+    <!-- Custom Alert -->
+    <div class="custom-alert-overlay" id="customAlertModal">
+        <div class="custom-alert-content">
+            <div class="custom-alert-title" id="alertTitle">ATTENTION</div>
+            <div class="custom-alert-msg" id="alertMessage">THIS IS A MESSAGE</div>
+            <div class="custom-alert-btn-container" id="alertBtnContainer">
+                <button class="custom-alert-btn" id="alertOkBtn" onclick="closeCustomAlert()">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let activeCol = 0;
+        let columnsData = JSON.parse(localStorage.getItem('current_columns_data') || '[[]]'); 
+        let currentInput = "";
+        let selectedPics = 10; 
+        let birdType = 'F';    
+
+        let targetColIdx = null;
+        let targetEntryIdx = null;
+        let currentViewingRecord = null;
+        let previousFullscreenPage = null;
+
+        let dcHistory = JSON.parse(localStorage.getItem('dc_history') || '[]');
+        let isSelectionMode = false;
+        let selectedHistoryIndexes = new Set();
+
+        let todayFormatted = new Date().toISOString().split('T')[0];
+
+        let sellerInfo = JSON.parse(localStorage.getItem('seller_info') || JSON.stringify({
+            date: todayFormatted,
+            traderName: "",
+            farmerName: "",
+            address: "",
+            carNumber: "",
+            loadingTime: "",
+            dispatchTime: ""
+        }));
+
+        function saveCurrentData() {
+            localStorage.setItem('current_columns_data', JSON.stringify(columnsData));
+        }
+
+        function getCurrentTimeString() {
+            let now = new Date();
+            return now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        }
+
+        function showCustomAlert(title, message, isConfirm = false, onOkCallback = null) {
+            document.getElementById('alertTitle').innerText = title;
+            document.getElementById('alertMessage').innerText = message;
+            
+            let btnContainer = document.getElementById('alertBtnContainer');
+            btnContainer.innerHTML = '';
+
+            if (isConfirm) {
+                let cancelBtn = document.createElement('button');
+                cancelBtn.className = 'custom-alert-btn cancel';
+                cancelBtn.innerText = 'CANCEL';
+                cancelBtn.onclick = function() { closeCustomAlert(); };
+                btnContainer.appendChild(cancelBtn);
+
+                let okBtn = document.createElement('button');
+                okBtn.className = 'custom-alert-btn';
+                okBtn.innerText = 'OK';
+                okBtn.onclick = function() {
+                    closeCustomAlert();
+                    if (onOkCallback) onOkCallback();
+                };
+                btnContainer.appendChild(okBtn);
+            } else {
+                let okBtn = document.createElement('button');
+                okBtn.className = 'custom-alert-btn';
+                okBtn.innerText = 'OK';
+                okBtn.onclick = function() { closeCustomAlert(); };
+                btnContainer.appendChild(okBtn);
+            }
+
+            document.getElementById('customAlertModal').style.display = 'flex';
+        }
+
+        function closeCustomAlert() {
+            document.getElementById('customAlertModal').style.display = 'none';
+        }
+
+        function openMenuFullscreen() {
+            previousFullscreenPage = null;
+            document.getElementById('menuFullscreenPage').style.display = 'flex';
+        }
+
+        function closeMenuFullscreen() {
+            document.getElementById('menuFullscreenPage').style.display = 'none';
+        }
+
+        function closeAllFullscreenPages() {
+            document.getElementById('menuFullscreenPage').style.display = 'none';
+            document.getElementById('sellerFullscreenPage').style.display = 'none';
+            document.getElementById('historyFullscreenPage').style.display = 'none';
+            document.getElementById('settingsFullscreenPage').style.display = 'none';
+            document.getElementById('pdfFullscreenPage').style.display = 'none';
+        }
+
+        function openSellerFullscreen() {
+            previousFullscreenPage = 'menu';
+            document.getElementById('sellerDateInput').value = sellerInfo.date || todayFormatted;
+            document.getElementById('traderName').value = sellerInfo.traderName;
+            document.getElementById('farmerName').value = sellerInfo.farmerName;
+            document.getElementById('sellerAddress').value = sellerInfo.address || "";
+            document.getElementById('carNumber').value = sellerInfo.carNumber;
+            document.getElementById('loadingTime').value = sellerInfo.loadingTime;
+            document.getElementById('dispatchTime').value = sellerInfo.dispatchTime;
+            document.getElementById('sellerFullscreenPage').style.display = 'flex';
+        }
+
+        function closeSellerFullscreen() {
+            document.getElementById('sellerFullscreenPage').style.display = 'none';
+            if (previousFullscreenPage === 'menu') {
+                openMenuFullscreen();
+            }
+        }
+
+        function openSettingsFullscreen() {
+            previousFullscreenPage = 'menu';
+            document.getElementById('settingsFullscreenPage').style.display = 'flex';
+        }
+
+        function closeSettingsFullscreen() {
+            document.getElementById('settingsFullscreenPage').style.display = 'none';
+            if (previousFullscreenPage === 'menu') {
+                openMenuFullscreen();
+            }
+        }
+
+        function openHistoryFullscreen() {
+            previousFullscreenPage = 'menu';
+            isSelectionMode = false;
+            selectedHistoryIndexes.clear();
+            document.getElementById('historySearchInput').value = "";
+            document.getElementById('filterStartDate').value = "";
+            document.getElementById('filterEndDate').value = "";
+            renderHistoryList(dcHistory);
+            document.getElementById('historyFullscreenPage').style.display = 'flex';
+        }
+
+        function closeHistoryFullscreen() {
+            document.getElementById('historyFullscreenPage').style.display = 'none';
+            if (previousFullscreenPage === 'menu') {
+                openMenuFullscreen();
+            }
+        }
+
+        function closePdfFullscreen() {
+            document.getElementById('pdfFullscreenPage').style.display = 'none';
+            if (previousFullscreenPage === 'history') {
+                openHistoryFullscreen();
+            } else if (previousFullscreenPage === 'menu') {
+                openMenuFullscreen();
+            }
+        }
+
+        function renderHistoryList(listToRender) {
+            let container = document.getElementById('historyItemsContainer');
+            container.innerHTML = '';
+
+            let deleteBtn = document.getElementById('deleteSelectedBtn');
+            if (isSelectionMode && selectedHistoryIndexes.size > 0) {
+                deleteBtn.style.display = 'block';
+                deleteBtn.innerText = `DELETE SELECTED (${selectedHistoryIndexes.size})`;
+            } else {
+                deleteBtn.style.display = 'none';
+            }
+
+            if (listToRender.length === 0) {
+                container.innerHTML = `<div style="text-align:center; padding:30px; font-weight:bold; color:#64748b;">NO SAVED DC RECORDS FOUND!</div>`;
+            } else {
+                listToRender.forEach((rec) => {
+                    let s = rec.seller;
+                    let actualIndex = dcHistory.findIndex(item => item === rec);
+
+                    let card = document.createElement('div');
+                    card.className = `fs-history-card ${selectedHistoryIndexes.has(actualIndex) ? 'selected' : ''}`;
+                    
+                    card.innerHTML = `
+                        <div class="fs-history-info">
+                            <div class="fs-history-farmer">FARMER: ${s.farmerName || 'N/A'}</div>
+                            <div class="fs-history-trader">TRADER: ${s.traderName || 'N/A'}</div>
+                            <div class="fs-history-sub">
+                                <span>DATE: ${s.date}</span>
+                                <span>CAR: ${s.carNumber || 'N/A'}</span>
+                            </div>
+                        </div>
+                        <input type="checkbox" class="history-checkbox" ${selectedHistoryIndexes.has(actualIndex) ? 'checked' : ''}>
+                    `;
+
+                    let checkbox = card.querySelector('.history-checkbox');
+                    if (isSelectionMode) {
+                        checkbox.style.display = 'block';
+                    } else {
+                        checkbox.style.display = 'none';
+                    }
+
+                    card.onclick = function() {
+                        if (isSelectionMode) {
+                            if (selectedHistoryIndexes.has(actualIndex)) {
+                                selectedHistoryIndexes.delete(actualIndex);
+                                if (selectedHistoryIndexes.size === 0) isSelectionMode = false;
+                            } else {
+                                selectedHistoryIndexes.add(actualIndex);
+                            }
+                            filterHistoryList();
+                        } else {
+                            generateA4PdfFullscreen(rec, 'history');
+                        }
+                    };
+
+                    let historyPressTimer;
+                    let triggerLongPress = function(e) {
+                        e.stopPropagation();
+                        isSelectionMode = true;
+                        selectedHistoryIndexes.add(actualIndex);
+                        filterHistoryList();
+                    };
+
+                    card.addEventListener('mousedown', function(e) {
+                        historyPressTimer = setTimeout(() => triggerLongPress(e), 1000);
+                    });
+                    card.addEventListener('mouseup', function() { clearTimeout(historyPressTimer); });
+                    card.addEventListener('mouseleave', function() { clearTimeout(historyPressTimer); });
+
+                    card.addEventListener('touchstart', function(e) {
+                        historyPressTimer = setTimeout(() => triggerLongPress(e), 1000);
+                    });
+                    card.addEventListener('touchend', function() { clearTimeout(historyPressTimer); });
+                    card.addEventListener('touchmove', function() { clearTimeout(historyPressTimer); });
+
+                    container.appendChild(card);
+                });
+            }
+        }
+
+        function filterHistoryList() {
+            let query = document.getElementById('historySearchInput').value.toLowerCase().trim();
+            let startDate = document.getElementById('filterStartDate').value;
+            let endDate = document.getElementById('filterEndDate').value;
+
+            let filtered = dcHistory.filter(rec => {
+                let s = rec.seller;
+                let fName = (s.farmerName || "").toLowerCase();
+                let tName = (s.traderName || "").toLowerCase();
+                let rDate = s.date || "";
+
+                let matchesQuery = query === "" || fName.includes(query) || tName.includes(query);
+                let matchesDate = true;
+
+                if (startDate && rDate < startDate) matchesDate = false;
+                if (endDate && rDate > endDate) matchesDate = false;
+
+                return matchesQuery && matchesDate;
+            });
+
+            renderHistoryList(filtered);
+        }
+
+        function resetHistoryFilters() {
+            document.getElementById('historySearchInput').value = "";
+            document.getElementById('filterStartDate').value = "";
+            document.getElementById('filterEndDate').value = "";
+            isSelectionMode = false;
+            selectedHistoryIndexes.clear();
+            renderHistoryList(dcHistory);
+        }
+
+        function deleteSelectedHistoryItems() {
+            showCustomAlert(
+                "DELETE RECORDS",
+                `DO YOU WANT TO DELETE ${selectedHistoryIndexes.size} SELECTED RECORD(S)?`,
+                true,
+                function() {
+                    dcHistory = dcHistory.filter((_, idx) => !selectedHistoryIndexes.has(idx));
+                    localStorage.setItem('dc_history', JSON.stringify(dcHistory));
+                    isSelectionMode = false;
+                    selectedHistoryIndexes.clear();
+                    filterHistoryList();
+                }
+            );
+        }
+
+        function backupDataToFile() {
+            let backupObj = {
+                dc_history: dcHistory,
+                current_columns_data: columnsData,
+                seller_info: sellerInfo
+            };
+            let dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupObj, null, 2));
+            let downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `DC_App_Backup_${todayFormatted}.txt`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+
+        function restoreDataFromFile(event) {
+            let file = event.target.files[0];
+            if (!file) return;
+
+            let reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    let backupObj = JSON.parse(e.target.result);
+                    if (backupObj.dc_history) {
+                        dcHistory = backupObj.dc_history;
+                        localStorage.setItem('dc_history', JSON.stringify(dcHistory));
+                    }
+                    if (backupObj.current_columns_data) {
+                        columnsData = backupObj.current_columns_data;
+                        localStorage.setItem('current_columns_data', JSON.stringify(columnsData));
+                    }
+                    if (backupObj.seller_info) {
+                        sellerInfo = backupObj.seller_info;
+                        localStorage.setItem('seller_info', JSON.stringify(sellerInfo));
+                    }
+                    renderColumns();
+                    showCustomAlert("SUCCESS", "DATA RESTORED SUCCESSFULLY FROM TXT FILE!");
+                } catch (err) {
+                    showCustomAlert("ERROR", "INVALID OR CORRUPTED BACKUP FILE!");
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function selectMenuOption(optionName) {
+            closeMenuFullscreen();
+            if (optionName === 'Sell Details') {
+                openSellerFullscreen();
+            } else if (optionName === 'Settings') {
+                openSettingsFullscreen();
+            } else if (optionName === 'Save DC') {
+                let hasEntries = false;
+                columnsData.forEach(col => { if (col.length > 0) hasEntries = true; });
+
+                if (!hasEntries) {
+                    showCustomAlert("MISSING ENTRIES", "PLEASE ADD AT LEAST ONE ENTRY BEFORE SAVING DC!");
+                    return;
+                }
+
+                let tName = sellerInfo.traderName.trim();
+                let fName = sellerInfo.farmerName.trim();
+
+                if (!tName || !fName) {
+                    showCustomAlert("INCOMPLETE SELL DETAILS", "PLEASE FILL TRADER NAME AND FARMER NAME IN SELL DETAILS!");
+                    return;
+                }
+
+                let recordToSave = {
+                    seller: { ...sellerInfo },
+                    data: JSON.parse(JSON.stringify(columnsData)),
+                    savedAt: new Date().toLocaleString()
+                };
+
+                let existingIndex = dcHistory.findIndex(item => 
+                    item.seller.farmerName.toLowerCase() === fName.toLowerCase() && 
+                    item.seller.traderName.toLowerCase() === tName.toLowerCase() &&
+                    item.seller.date === sellerInfo.date
+                );
+
+                if (existingIndex !== -1) {
+                    dcHistory[existingIndex] = recordToSave;
+                } else {
+                    dcHistory.push(recordToSave);
+                }
+
+                localStorage.setItem('dc_history', JSON.stringify(dcHistory));
+                showCustomAlert("SUCCESS", "DC RECORD UPDATED & SAVED SUCCESSFULLY!");
+
+                generateA4PdfFullscreen(recordToSave, 'menu');
+
+            } else if (optionName === 'New DC') {
+                let hasEntries = false;
+                columnsData.forEach(col => { if (col.length > 0) hasEntries = true; });
+
+                let hasSellerInfo = sellerInfo.traderName.trim() || sellerInfo.farmerName.trim() || sellerInfo.carNumber.trim() || sellerInfo.address.trim();
+
+                if (hasEntries || hasSellerInfo) {
+                    showCustomAlert(
+                        "WARNING", 
+                        "DO YOU WANT TO START A NEW DC? CURRENT ENTRIES AND DETAILS WILL BE RESET.", 
+                        true, 
+                        function() {
+                            columnsData = [[]];
+                            activeCol = 0;
+                            currentInput = "";
+                            sellerInfo = {
+                                date: new Date().toISOString().split('T')[0],
+                                traderName: "",
+                                farmerName: "",
+                                address: "",
+                                carNumber: "",
+                                loadingTime: "",
+                                dispatchTime: ""
+                            };
+                            localStorage.removeItem('seller_info');
+                            localStorage.removeItem('current_columns_data');
+                            renderColumns();
+                            clearInput();
+                            showCustomAlert("STARTED", "NEW DC SESSION STARTED SUCCESSFULLY!");
+                        }
+                    );
+                } else {
+                    columnsData = [[]];
+                    activeCol = 0;
+                    currentInput = "";
+                    sellerInfo = {
+                        date: new Date().toISOString().split('T')[0],
+                        traderName: "",
+                        farmerName: "",
+                        address: "",
+                        carNumber: "",
+                        loadingTime: "",
+                        dispatchTime: ""
+                    };
+                    localStorage.removeItem('seller_info');
+                    localStorage.removeItem('current_columns_data');
+                    renderColumns();
+                    clearInput();
+                }
+            } else if (optionName === 'History') {
+                openHistoryFullscreen();
+            } else {
+                showCustomAlert("INFO", optionName.toUpperCase() + " OPTION SELECTED.");
+            }
+        }
+
+        function generateA4PdfFullscreen(record, fromPage = 'menu') {
+            previousFullscreenPage = fromPage;
+            currentViewingRecord = record;
+            let s = record.seller;
+            let data = record.data;
+
+            document.getElementById('pdfModalTitle').innerText = `${s.farmerName} - ${s.traderName}`;
+
+            let freshTotW = 0, freshTotP = 0;
+            let lameTotW = 0, lameTotP = 0;
+            let maggotTotW = 0, maggotTotP = 0;
+            let overallTotW = 0, overallTotP = 0;
+
+            let columnsHtml = '';
+            for(let i = 0; i < 5; i++) {
+                let col = data[i] || [];
+                let colP = 0, colW = 0;
+                let entriesRows = '';
+                
+                for(let r = 0; r < 20; r++) {
+                    let e = col[r];
+                    if(e) {
+                        let w = parseFloat(e.weight);
+                        let p = e.pics;
+                        let t = e.type || 'F';
+                        colP += p;
+                        colW += w;
+                        overallTotP += p;
+                        overallTotW += w;
+                        if (t === 'F') {
+                            freshTotP += p;
+                            freshTotW += w;
+                        } else if (t === 'L') {
+                            lameTotP += p;
+                            lameTotW += w;
+                        } else if (t === 'M') {
+                            maggotTotP += p;
+                            maggotTotW += w;
+                        }
+                        let wClass = t === 'F' ? 'weight-fresh' : (t === 'L' ? 'weight-lame' : 'weight-maggot');
+                        entriesRows += `<div class="pdf-entry-row"><span style="font-size:9px; font-weight:bold; color:#000;">${p}</span>-<span class="${wClass}" style="font-size:11px;">${e.weight}</span></div>`;
+                    } else {
+                        entriesRows += `<div class="pdf-entry-row" style="color:transparent;">-</div>`;
+                    }
+                }
+
+                columnsHtml += `
+                    <div class="pdf-col-box">
+                        <div class="pdf-col-title">COL ${i + 1}</div>
+                        <div class="pdf-col-entries-list">
+                            ${entriesRows}
+                        </div>
+                        <div style="margin-top: 2px; font-size:9px; font-weight:bold; text-align:center; border-top:1px solid #cbd5e1; padding-top:2px; color:#334155; flex-shrink:0; background:#f8fafc;">
+                            P:${colP} W:${colW.toFixed(1)}
+                        </div>
+                    </div>
+                `;
+            }
+
+            let freshAvg = freshTotP > 0 ? (freshTotW / freshTotP).toFixed(2) : '0.00';
+            let lameAvg = lameTotP > 0 ? (lameTotW / lameTotP).toFixed(2) : '0.00';
+            let maggotAvg = maggotTotP > 0 ? (maggotTotW / maggotTotP).toFixed(2) : '0.00';
+            let overallAvg = overallTotP > 0 ? (overallTotW / overallTotP).toFixed(2) : '0.00';
+
+            let pdfHtml = `
+                <div class="pdf-doc-header">
+                    <div class="pdf-doc-left">
+                        <div class="pdf-farmer-name">FARMER: ${s.farmerName || 'N/A'}</div>
+                        <div class="pdf-trader-name">TRADER: ${s.traderName || 'N/A'}</div>
+                        <div class="pdf-meta-text">ADDRESS: ${s.address || 'N/A'} | CAR NO: ${s.carNumber || 'N/A'}</div>
+                    </div>
+                    <div class="pdf-doc-right">
+                        <div><strong>DATE:</strong> ${s.date}</div>
+                        <div><strong>LOAD:</strong> ${s.loadingTime || 'N/A'}</div>
+                        <div><strong>DISP:</strong> ${s.dispatchTime || 'N/A'}</div>
+                    </div>
+                </div>
+
+                <div class="pdf-columns-grid">
+                    ${columnsHtml}
+                </div>
+
+                <div class="pdf-summary-box">
+                    <div class="pdf-summary-line" style="color: #0047ab; border-bottom:1px dashed #cbd5e1; padding-bottom:2px; margin-bottom:2px; font-size:10px;">
+                        <span>FRESH [PIC: ${freshTotP}]</span>
+                        <span>WT: ${freshTotW.toFixed(1)}</span>
+                        <span>AVG: ${freshAvg}</span>
+                    </div>
+                    <div class="pdf-summary-line" style="color: #dc3545; border-bottom:1px dashed #cbd5e1; padding-bottom:2px; margin-bottom:2px; font-size:10px;">
+                        <span>LAME [PIC: ${lameTotP}]</span>
+                        <span>WT: ${lameTotW.toFixed(1)}</span>
+                        <span>AVG: ${lameAvg}</span>
+                    </div>
+                    <div class="pdf-summary-line" style="color: #8b5cf6; border-bottom:1px dashed #cbd5e1; padding-bottom:2px; margin-bottom:2px; font-size:10px;">
+                        <span>MAGGOT [PIC: ${maggotTotP}]</span>
+                        <span>WT: ${maggotTotW.toFixed(1)}</span>
+                        <span>AVG: ${maggotAvg}</span>
+                    </div>
+                    <div class="pdf-summary-line" style="color: #0f172a; font-size:11px;">
+                        <span>TOTAL PIC: ${overallTotP}</span>
+                        <span>TOTAL WT: ${overallTotW.toFixed(1)}</span>
+                        <span>AVG: ${overallAvg}</span>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('pdfBodyContent').innerHTML = pdfHtml;
+            document.getElementById('pdfFullscreenPage').style.display = 'flex';
+        }
+
+        function sharePdfAction() {
+            // অ্যান্ড্রয়েড অ্যাপের ভেতরে প্রিন্ট বা পিডিএফ জেনারেট করার সময় অ্যান্ড্রয়েড ওয়েবভিউ (WebView) ক্র্যাশ রোধ করতে ট্রাই-ক্যাচ ও ফলব্যাক ব্যবহার করা হয়েছে
+            try {
+                window.print();
+            } catch (err) {
+                // যদি অ্যাপের ভেতরে ডাইরেক্ট প্রিন্ট না হয়, তবে ব্যবহারকারীকে বিকল্প নোটিফিকেশন বা শেয়ার অপশন দেওয়া হবে
+                if (typeof Android !== 'undefined' && Android.print) {
+                    Android.print();
+                } else {
+                    window.print();
+                }
+            }
+        }
+
+        function shareDetailsAction() {
+            if (!currentViewingRecord) return;
+            let s = currentViewingRecord.seller;
+            let data = currentViewingRecord.data;
+
+            let freshTotW = 0, freshTotP = 0;
+            let lameTotW = 0, lameTotP = 0;
+            let maggotTotW = 0, maggotTotP = 0;
+            let overallTotW = 0, overallTotP = 0;
+
+            data.forEach(col => {
+                col.forEach(e => {
+                    let w = parseFloat(e.weight);
+                    let p = e.pics;
+                    let t = e.type || 'F';
+                    overallTotP += p;
+                    overallTotW += w;
+                    if (t === 'F') {
+                        freshTotP += p;
+                        freshTotW += w;
+                    } else if (t === 'L') {
+                        lameTotP += p;
+                        lameTotW += w;
+                    } else if (t === 'M') {
+                        maggotTotP += p;
+                        maggotTotW += w;
+                    }
+                });
+            });
+
+            let freshAvg = freshTotP > 0 ? (freshTotW / freshTotP).toFixed(2) : '0.00';
+            let lameAvg = lameTotP > 0 ? (lameTotW / lameTotP).toFixed(2) : '0.00';
+            let maggotAvg = maggotTotP > 0 ? (maggotTotW / maggotTotP).toFixed(2) : '0.00';
+            let overallAvg = overallTotP > 0 ? (overallTotW / overallTotP).toFixed(2) : '0.00';
+
+            let detailsText = `*DC STATEMENT DETAILS*\n` +
+                              `*FARMER:* *${s.farmerName || 'N/A'}*\n` +
+                              `*TRADER:* ${s.traderName || 'N/A'}\n` +
+                              `*ADDRESS:* ${s.address || 'N/A'}\n` +
+                              `*CAR NO:* ${s.carNumber || 'N/A'}\n` +
+                              `*DATE:* ${s.date}\n` +
+                              `*LOADING TIME:* ${s.loadingTime || 'N/A'}\n` +
+                              `*DISPATCH TIME:* ${s.dispatchTime || 'N/A'}\n\n` +
+                              `*--- DETAILED SUMMARY ---*\n` +
+                              `*FRESH BIRD ->*\n` +
+                              `PICS: ${freshTotP}\n` +
+                              `WEIGHT: ${freshTotW.toFixed(1)}\n` +
+                              `AVG: ${freshAvg}\n` +
+                              `*LAME BIRD ->*\n` +
+                              `PICS: ${lameTotP}\n` +
+                              `WEIGHT: ${lameTotW.toFixed(1)}\n` +
+                              `AVG: ${lameAvg}\n` +
+                              `*MAGGOT BIRD ->* PICS: ${maggotTotP}\n` +
+                              `WEIGHT: ${maggotTotW.toFixed(1)}\n` +
+                              `AVG: ${maggotAvg}\n\n` +
+                              `*TOTAL PICS:* ${overallTotP}\n` +
+                              `*TOTAL WEIGHT:* ${overallTotW.toFixed(1)}\n` +
+                              `*OVERALL AVG:* ${overallAvg}`;
+
+            if (navigator.share) {
+                navigator.share({
+                    title: 'DC DETAILS',
+                    text: detailsText
+                }).catch(() => {});
+            } else {
+                navigator.clipboard.writeText(detailsText);
+                showCustomAlert("COPIED", "DC DETAILS COPIED TO CLIPBOARD!");
+            }
+        }
+
+        function saveSellerDetails() {
+            sellerInfo.date = document.getElementById('sellerDateInput').value || todayFormatted;
+            sellerInfo.traderName = document.getElementById('traderName').value.toUpperCase();
+            sellerInfo.farmerName = document.getElementById('farmerName').value.toUpperCase();
+            sellerInfo.address = document.getElementById('sellerAddress').value.toUpperCase();
+            sellerInfo.carNumber = document.getElementById('carNumber').value.toUpperCase();
+            
+            localStorage.setItem('seller_info', JSON.stringify(sellerInfo));
+            closeSellerFullscreen();
+        }
+
+        function setBirdType(type) {
+            birdType = type;
+            document.getElementById('btnTypeF').classList.remove('active-type-f');
+            document.getElementById('btnTypeL').classList.remove('active-type-l');
+            document.getElementById('btnTypeM').classList.remove('active-type-m');
+
+            if (type === 'F') {
+                document.getElementById('btnTypeF').classList.add('active-type-f');
+            } else if (type === 'L') {
+                document.getElementById('btnTypeL').classList.add('active-type-l');
+            } else if (type === 'M') {
+                document.getElementById('btnTypeM').classList.add('active-type-m');
+            }
+        }
+
+        function openManualModal() {
+            let grid = document.getElementById('modalGrid');
+            grid.innerHTML = '';
+            for (let i = 1; i <= 15; i++) {
+                let btn = document.createElement('button');
+                btn.className = 'modal-num-btn';
+                btn.innerText = i;
+                btn.onclick = function() {
+                    selectedPics = i;
+                    document.getElementById('manualLabel').innerText = `PICS (${i})`;
+                    closeManualModal();
+                };
+                grid.appendChild(btn);
+            }
+            document.getElementById('manualModal').style.display = 'flex';
+        }
+
+        function closeManualModal() {
+            document.getElementById('manualModal').style.display = 'none';
+        }
+
+        function appendKey(val) {
+            if (val === '.' && currentInput.includes('.')) return;
+            if (currentInput.length < 6) {
+                currentInput += val;
+                document.getElementById('floatingDisplay').innerText = currentInput;
+            }
+        }
+
+        function clearInput() {
+            currentInput = "";
+            document.getElementById('floatingDisplay').innerText = "";
+        }
+
+        function deleteKey() {
+            currentInput = currentInput.slice(0, -1);
+            document.getElementById('floatingDisplay').innerText = currentInput;
+        }
+
+        function submitEntry() {
+            if (!currentInput) return;
+
+            let cleanInput = currentInput.trim();
+            if (cleanInput === '.') return;
+
+            if (cleanInput.endsWith('.')) {
+                cleanInput += '0';
+            }
+
+            let weightVal = parseFloat(cleanInput);
+            if (isNaN(weightVal) || weightVal <= 0) return;
+
+            let totalEntriesCount = 0;
+            columnsData.forEach(col => totalEntriesCount += col.length);
+            
+            if (totalEntriesCount === 0) {
+                sellerInfo.loadingTime = getCurrentTimeString();
+                localStorage.setItem('seller_info', JSON.stringify(sellerInfo));
+            }
+
+            let formattedWeight = cleanInput.includes('.') ? cleanInput : cleanInput + '.0';
+            
+            if (columnsData[activeCol].length >= 20) {
+                if (activeCol < 4) {
+                    activeCol++;
+                    if (activeCol >= columnsData.length) {
+                        columnsData.push([]);
+                    }
+                } else {
+                    showCustomAlert("LIMIT REACHED", "MAXIMUM 20 ENTRIES ALLOWED PER COLUMN! THIS COLUMN IS FULL.");
+                    return;
+                }
+            }
+
+            if (columnsData[activeCol].length >= 20) {
+                showCustomAlert("LIMIT REACHED", "MAXIMUM 20 ENTRIES ALLOWED PER COLUMN!");
+                return;
+            }
+
+            columnsData[activeCol].push({ 
+                weight: formattedWeight, 
+                pics: selectedPics, 
+                type: birdType 
+            });
+
+            saveCurrentData();
+
+            sellerInfo.dispatchTime = getCurrentTimeString();
+            localStorage.setItem('seller_info', JSON.stringify(sellerInfo));
+
+            renderColumns();
+            clearInput();
+        }
+
+        function renderColumns() {
+            let container = document.getElementById('columnsContainer');
+            let floatingDiv = document.getElementById('floatingDisplay');
+            container.innerHTML = '';
+            container.appendChild(floatingDiv);
+
+            let overallTotalWeight = 0;
+            let overallTotalPics = 0;
+
+            let freshTotalWeight = 0;
+            let freshTotalPics = 0;
+
+            let lameTotalWeight = 0;
+            let lameTotalPics = 0;
+
+            let maggotTotalWeight = 0;
+            let maggotTotalPics = 0;
+
+            let colWidthPercent = `${100 / 5}%`;
+
+            for (let i = 0; i < 5; i++) {
+                if (!columnsData[i]) {
+                    columnsData[i] = [];
+                }
+
+                let colIndex = i;
+                let colDiv = document.createElement('div');
+                colDiv.className = 'column';
+                colDiv.style.flex = `0 0 ${colWidthPercent}`;
+                if (i === activeCol) {
+                    colDiv.style.background = '#fffdf0';
+                }
+
+                let lastTap = 0;
+                colDiv.addEventListener('click', function(e) {
+                    let currentTime = new Date().getTime();
+                    let tapLength = currentTime - lastTap;
+                    if (tapLength < 300 && tapLength > 0) {
+                        activeCol = colIndex;
+                        renderColumns();
+                        e.stopPropagation();
+                    }
+                    lastTap = currentTime;
+                });
+
+                let entriesDiv = document.createElement('div');
+                entriesDiv.className = 'column-entries';
+
+                let colTotalPics = 0;
+                let colTotalWeight = 0;
+
+                columnsData[i].forEach((entry, entryIndex) => {
+                    let w = parseFloat(entry.weight);
+                    let p = entry.pics;
+                    let t = entry.type || 'F';
+
+                    overallTotalWeight += w;
+                    overallTotalPics += p;
+
+                    colTotalPics += p;
+                    colTotalWeight += w;
+
+                    if (t === 'F') {
+                        freshTotalWeight += w;
+                        freshTotalPics += p;
+                    } else if (t === 'L') {
+                        lameTotalWeight += w;
+                        lameTotalPics += p;
+                    } else if (t === 'M') {
+                        maggotTotalWeight += w;
+                        maggotTotalPics += p;
+                    }
+
+                    let itemDiv = document.createElement('div');
+                    itemDiv.className = `entry-item`;
+                    
+                    let weightClass = t === 'F' ? 'weight-fresh' : (t === 'L' ? 'weight-lame' : 'weight-maggot');
+                    itemDiv.innerHTML = `
+                        <span class="entry-pics">${p}</span>-<span class="${weightClass}">${entry.weight}</span>
+                    `;
+
+                    let pressTimer;
+                    let triggerLongPress = function() {
+                        targetColIdx = colIndex;
+                        targetEntryIdx = entryIndex;
+                        let typeName = t === 'F' ? 'FRESH' : (t === 'L' ? 'LAME' : 'MAGGOT');
+                        document.getElementById('actionModalTitle').innerText = `ENTRY: ${p}-${entry.weight} (${typeName})`;
+                        document.getElementById('actionModal').style.display = 'flex';
+                    };
+
+                    itemDiv.addEventListener('mousedown', function(e) {
+                        pressTimer = setTimeout(triggerLongPress, 1000);
+                        e.stopPropagation();
+                    });
+                    itemDiv.addEventListener('mouseup', function() { clearTimeout(pressTimer); });
+                    itemDiv.addEventListener('mouseleave', function() { clearTimeout(pressTimer); });
+
+                    itemDiv.addEventListener('touchstart', function(e) {
+                        pressTimer = setTimeout(triggerLongPress, 1000);
+                        e.stopPropagation();
+                    });
+                    itemDiv.addEventListener('touchend', function() { clearTimeout(pressTimer); });
+                    itemDiv.addEventListener('touchmove', function() { clearTimeout(pressTimer); });
+
+                    entriesDiv.appendChild(itemDiv);
+                });
+
+                colDiv.appendChild(entriesDiv);
+
+                if (i === activeCol) {
+                    setTimeout(() => {
+                        let lastItem = entriesDiv.lastElementChild;
+                        if (lastItem) {
+                            lastItem.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+                        }
+                    }, 50);
+                }
+
+                let footerDiv = document.createElement('div');
+                footerDiv.className = 'column-footer';
+                footerDiv.innerHTML = `P:${colTotalPics}<br>W:${colTotalWeight.toFixed(1)}`;
+                colDiv.appendChild(footerDiv);
+
+                container.appendChild(colDiv);
+            }
+
+            let freshAvg = freshTotalPics > 0 ? (freshTotalWeight / freshTotalPics).toFixed(2) : '0.00';
+            let lameAvg = lameTotalPics > 0 ? (lameTotalWeight / lameTotalPics).toFixed(2) : '0.00';
+            let maggotAvg = maggotTotalPics > 0 ? (maggotTotalWeight / maggotTotalPics).toFixed(2) : '0.00';
+            let overallAvg = overallTotalPics > 0 ? (overallTotalWeight / overallTotalPics).toFixed(2) : '0.00';
+
+            document.getElementById('freshSummary').innerHTML = `
+                <span>FRESH [PIC: ${freshTotalPics}]</span>
+                <span>WT: ${freshTotalWeight.toFixed(1)}</span>
+                <span>AVG: ${freshAvg}</span>
+            `;
+
+            document.getElementById('lameSummary').innerHTML = `
+                <span>LAME [PIC: ${lameTotalPics}]</span>
+                <span>WT: ${lameTotalWeight.toFixed(1)}</span>
+                <span>AVG: ${lameAvg}</span>
+            `;
+
+            document.getElementById('maggotSummary').innerHTML = `
+                <span>MAGGOT [PIC: ${maggotTotalPics}]</span>
+                <span>WT: ${maggotTotalWeight.toFixed(1)}</span>
+                <span>AVG: ${maggotAvg}</span>
+            `;
+
+            let summaryBar = document.getElementById('summaryBar');
+            summaryBar.innerHTML = `
+                <span>TOTAL PIC-${overallTotalPics}</span>
+                <span>TOTAL WT-${overallTotalWeight.toFixed(1)}</span>
+                <span>AVG-${overallAvg}</span>
+            `;
+        }
+
+        let summaryPressTimer;
+        let summaryBarElem = document.getElementById('summaryBar');
+
+        summaryBarElem.addEventListener('mousedown', function() {
+            summaryPressTimer = setTimeout(function() {
+                if (confirm(`WARNING: DO YOU WANT TO DELETE ALL ENTRIES IN COLUMN ${activeCol + 1}?`)) {
+                    columnsData[activeCol] = [];
+                    saveCurrentData();
+                    renderColumns();
+                }
+            }, 1000);
+        });
+        summaryBarElem.addEventListener('mouseup', function() { clearTimeout(summaryPressTimer); });
+        summaryBarElem.addEventListener('mouseleave', function() { clearTimeout(summaryPressTimer); });
+
+        summaryBarElem.addEventListener('touchstart', function() {
+            summaryPressTimer = setTimeout(function() {
+                if (confirm(`WARNING: DO YOU WANT TO DELETE ALL ENTRIES IN COLUMN ${activeCol + 1}?`)) {
+                    columnsData[activeCol] = [];
+                    saveCurrentData();
+                    renderColumns();
+                }
+            }, 1000);
+        });
+        summaryBarElem.addEventListener('touchend', function() { clearTimeout(summaryPressTimer); });
+        summaryBarElem.addEventListener('touchmove', function() { clearTimeout(summaryPressTimer); });
+
+        function closeActionModal() {
+            document.getElementById('actionModal').style.display = 'none';
+            targetColIdx = null;
+            targetEntryIdx = null;
+        }
+
+        function deleteSelectedEntry() {
+            if (targetColIdx !== null && targetEntryIdx !== null) {
+                columnsData[targetColIdx].splice(targetEntryIdx, 1);
+                activeCol = targetColIdx;
+                saveCurrentData();
+                renderColumns();
+                closeActionModal();
+            }
+        }
+
+        function editSelectedEntry() {
+            if (targetColIdx !== null && targetEntryIdx !== null) {
+                let currentEntry = columnsData[targetColIdx][targetEntryIdx];
+                let newWeightInput = prompt("EDIT WEIGHT:", currentEntry.weight);
+                if (newWeightInput !== null) {
+                    let weightVal = parseFloat(newWeightInput);
+                    if (!isNaN(weightVal) && weightVal > 0) {
+                        let formattedWeight = newWeightInput.includes('.') ? newWeightInput : newWeightInput + '.0';
+                        columnsData[targetColIdx][targetEntryIdx].weight = formattedWeight;
+                        activeCol = targetColIdx;
+                        saveCurrentData();
+                        renderColumns();
+                    } else {
+                        showCustomAlert("INVALID INPUT", "PLEASE ENTER A VALID WEIGHT!");
+                    }
+                }
+                closeActionModal();
+            }
+        }
+
+        renderColumns();
+    </script>
+</body>
+</html>
