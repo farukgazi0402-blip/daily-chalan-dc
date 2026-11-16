@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>D.C Entry App</title>
+    <!-- html2pdf লাইব্রেরি যুক্ত করা হয়েছে যাতে অ্যাপের ভেতরে ডাইরেক্ট পিডিএফ জেনারেট ও শেয়ার করা যায় -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         * {
             box-sizing: border-box;
@@ -38,7 +40,7 @@
             width: 100%;
         }
 
-        /* ভাসমান লাইভ ডিসপ্লে (হালকা লাল কালার করা হয়েছে) */
+        /* ভাসমান লাইভ ডিসপ্লে */
         .floating-live-display {
             position: absolute;
             top: 50%;
@@ -92,7 +94,7 @@
             flex-shrink: 0;
         }
 
-        /* এন্ট্রি আইটেম (মাঝ বরাবর) */
+        /* এন্ট্রি আইটেম */
         .entry-item {
             padding: 3px 1px;
             border-bottom: 1px dashed #e2e8f0;
@@ -178,7 +180,7 @@
             user-select: none;
         }
 
-        /* Mode & Type Buttons Row (PICS, F, L, M) */
+        /* Mode & Type Buttons Row */
         .mode-row {
             display: flex;
             gap: 4px;
@@ -793,46 +795,6 @@
             justify-content: space-around;
             padding: 2px 0;
         }
-
-        /* Print Media Style for A4 & A5 */
-        @media print {
-            body * {
-                visibility: hidden;
-            }
-            #pdfFullscreenPage, #pdfFullscreenPage * {
-                visibility: visible;
-            }
-            #pdfFullscreenPage {
-                position: absolute;
-                left: 0;
-                top: 0;
-                width: 100%;
-                height: 100%;
-                background: #fff;
-                padding: 0;
-            }
-            .fs-header, .fs-btn-row {
-                display: none;
-            }
-            .fs-body {
-                padding: 0;
-                background: #fff;
-            }
-            .pdf-body-content {
-                border: none;
-                box-shadow: none;
-                padding: 4mm 6mm;
-                height: 100vh;
-            }
-            .pdf-farmer-name { font-size: 15px !important; }
-            .pdf-trader-name { font-size: 13px !important; }
-            .pdf-meta-text { font-size: 10px !important; }
-            .pdf-doc-right { font-size: 10px !important; }
-            .pdf-col-title { font-size: 11px !important; padding: 2px 0 !important; }
-            .pdf-entry-row { font-size: 12px !important; padding: 1px 0 !important; }
-            .pdf-entry-row .entry-pics { font-size: 10px !important; }
-            .pdf-summary-box { font-size: 11px !important; padding: 6px !important; }
-        }
     </style>
 </head>
 <body>
@@ -991,7 +953,7 @@
         </div>
     </div>
 
-    <!-- FULLSCREEN HISTORY LIST PAGE (Search, Date Filter, Multi-Delete & Long-Press) -->
+    <!-- FULLSCREEN HISTORY LIST PAGE -->
     <div class="fullscreen-page" id="historyFullscreenPage">
         <div class="fs-header">
             <div class="fs-header-left">
@@ -1002,13 +964,11 @@
         </div>
         <div class="fs-body">
             <div class="fs-content-box" style="max-width: 500px; gap: 8px;">
-                <!-- Search Box -->
                 <div class="fs-form-group" style="margin-bottom: 0;">
                     <label>SEARCH (CUSTOMER / FARMER)</label>
                     <input type="text" id="historySearchInput" placeholder="TYPE NAME TO SEARCH..." oninput="filterHistoryList()">
                 </div>
 
-                <!-- Date Range Filter -->
                 <div style="display: flex; gap: 8px; width: 100%;">
                     <div class="fs-form-group" style="flex: 1; margin-bottom: 0;">
                         <label>FROM DATE</label>
@@ -1024,13 +984,12 @@
                     <button class="fs-primary-btn" id="deleteSelectedBtn" style="padding: 6px; font-size: 11px; background: #dc3545; display: none;" onclick="deleteSelectedHistoryItems()">DELETE SELECTED</button>
                 </div>
 
-                <!-- History Cards Container -->
                 <div id="historyItemsContainer" style="width: 100%; display: flex; flex-direction: column; gap: 8px;"></div>
             </div>
         </div>
     </div>
 
-    <!-- FULLSCREEN SETTINGS PAGE (Backup & Restore TXT) -->
+    <!-- FULLSCREEN SETTINGS PAGE -->
     <div class="fullscreen-page" id="settingsFullscreenPage">
         <div class="fs-header">
             <div class="fs-header-left">
@@ -1527,7 +1486,7 @@
             let s = record.seller;
             let data = record.data;
 
-            // ফর্ম্যাট করা ফাইলের নাম: [Farmer] To [Trader] ([Date])
+            // ফাইলের নাম: [Farmer Name] To [Trader Name] ([Date])
             let customFileName = `${s.farmerName || 'FARMER'} To ${s.traderName || 'TRADER'} (${s.date || todayFormatted})`;
             document.getElementById('pdfModalTitle').innerText = customFileName;
 
@@ -1633,17 +1592,36 @@
             document.getElementById('pdfFullscreenPage').style.display = 'flex';
         }
 
+        // অ্যাপের ভেতরে সফলভাবে পিডিএফ তৈরি ও ডাউনলোড বা শেয়ার করার ফাংশন
         function sharePdfAction() {
-            // অ্যাপের WebView-এ প্রিন্ট/সেভ পিডিএফ ট্রিগার করার জন্য সুসংহত লজিক
-            try {
-                if (typeof Android !== 'undefined' && Android.printPdf) {
-                    Android.printPdf();
+            if (!currentViewingRecord) return;
+            let s = currentViewingRecord.seller;
+            let fileName = `${s.farmerName || 'FARMER'} To ${s.traderName || 'TRADER'} (${s.date || todayFormatted}).pdf`;
+
+            let element = document.getElementById('pdfBodyContent');
+            let opt = {
+                margin:       5,
+                filename:     fileName,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            // html2pdf লাইব্রেরি ব্যবহার করে ডাইরেক্ট পিডিএফ ফাইল তৈরি ও ডাউনলোড করবে
+            html2pdf().from(element).set(opt).outputPdf('blob').then(function(pdfBlob) {
+                let file = new File([pdfBlob], fileName, { type: 'application/pdf' });
+                
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    navigator.share({
+                        files: [file],
+                        title: fileName,
+                        text: 'Here is your D.C Statement PDF.'
+                    }).catch(() => {});
                 } else {
-                    window.print();
+                    // শেয়ার এপিআই না থাকলে অটোমেটিক ডাউনলোড হয়ে যাবে
+                    html2pdf().from(element).set(opt).save();
                 }
-            } catch (err) {
-                window.print();
-            }
+            });
         }
 
         function shareDetailsAction() {
@@ -1697,7 +1675,6 @@
                               `*TOTAL WEIGHT:* ${overallTotW.toFixed(1)}\n` +
                               `*OVERALL AVG:* ${overallAvg}`;
 
-            // সরাসরি WhatsApp-এ শেয়ার করার জন্য wa.me লিঙ্ক অথবা Web Share API ব্যবহার করা হয়েছে যা অ্যাপে সফলভাবে কাজ করবে
             let encodedText = encodeURIComponent(detailsText);
             let whatsappUrl = `https://api.whatsapp.com/send?text=${encodedText}`;
 
@@ -1709,7 +1686,6 @@
                     window.open(whatsappUrl, '_blank');
                 });
             } else {
-                // ব্রাউজার বা অ্যাপে শেয়ার API না থাকলে সরাসরি হোয়াটসঅ্যাপ অ্যাপে টেক্সট ওপেন হবে
                 window.open(whatsappUrl, '_blank');
             }
         }
