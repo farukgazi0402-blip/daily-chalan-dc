@@ -12,7 +12,19 @@
     <allow-intent href="https://*/*" />
     <preference name="orientation" value="default" />
     <preference name="fullscreen" value="false" />
+
+    <!-- এন্ড্রয়েড ফাইল অপারেশন এবং শেয়ারিংয়ের জন্য প্রয়োজনীয় প্লাগইন -->
+    <plugin name="cordova-plugin-file" spec="^7.0.0" />
+    <plugin name="cordova-plugin-x-socialsharing" spec="^6.0.4" />
+
     <platform name="android">
         <allow-intent href="market:*" />
+        
+        <!-- এন্ড্রয়েড স্টোরেজ এবং ফাইল পারমিশন কনফিগারেশন -->
+        <preference name="AndroidPersistentFileLocation" value="Compatibility" />
+        <edit-config file="app/src/main/AndroidManifest.xml" mode="merge" target="/manifest">
+            <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+            <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+        </edit-config>
     </platform>
 </widget>
