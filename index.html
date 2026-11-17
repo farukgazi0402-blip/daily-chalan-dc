@@ -1070,7 +1070,7 @@
             <div class="pdf-body-content" id="pdfBodyContent">
             </div>
             <div class="fs-btn-row" style="max-width: 100%; padding: 0 4px 4px 4px; flex-shrink: 0;">
-                <button class="fs-primary-btn" style="background:#0284c7; padding: 6px; font-size:12px;" onclick="sharePdfAction()">SHARE PDF / PRINT</button>
+                <button class="fs-primary-btn" style="background:#0284c7; padding: 6px; font-size:12px;" onclick="sharePdfAction()">SHARE STATEMENT</button>
                 <button class="fs-primary-btn" style="padding: 6px; font-size:12px;" onclick="shareDetailsAction()">SHARE DETAILS</button>
             </div>
         </div>
@@ -1631,23 +1631,10 @@
             document.getElementById('pdfFullscreenPage').style.display = 'flex';
         }
 
+        // অ্যাপ্লিকেশনে সরাসরি WhatsApp বা নেটিভ শেয়ার করার জন্য আপডেট করা ফাংশন
         function sharePdfAction() {
-            try {
-                if (navigator.share) {
-                    let s = currentViewingRecord.seller;
-                    let summaryText = `DC STATEMENT SUMMARY\nFarmer: ${s.farmerName}\nTrader: ${s.traderName}\nDate: ${s.date}`;
-                    navigator.share({
-                        title: 'DC Statement',
-                        text: summaryText
-                    }).catch(() => {
-                        window.print();
-                    });
-                } else {
-                    window.print();
-                }
-            } catch (err) {
-                window.print();
-            }
+            if (!currentViewingRecord) return;
+            shareDetailsAction(); // অ্যাপে পিডিএফ বা প্রিন্ট অপশনের পরিবর্তে ডাইরেক্ট ফরম্যাটে শেয়ার নিশ্চিত করতে এটি কল করা হয়েছে
         }
 
         function shareDetailsAction() {
@@ -1685,7 +1672,8 @@
             let maggotAvg = maggotTotP > 0 ? (maggotTotW / maggotTotP).toFixed(3) : '0.000';
             let overallAvg = overallTotP > 0 ? (overallTotW / overallTotP).toFixed(3) : '0.000';
 
-            let detailsText = `*DC STATEMENT DETAILS*\n` +
+            let detailsText = `*DC STATEMENT REPORT*\n` +
+                              `======================\n` +
                               `*FARMER:* *${s.farmerName || 'N/A'}*\n` +
                               `*TRADER:* ${s.traderName || 'N/A'}\n` +
                               `*ADDRESS:* ${s.address || 'N/A'}\n` +
@@ -1693,19 +1681,22 @@
                               `*DATE:* ${s.date}\n` +
                               `*LOADING TIME:* ${s.loadingTime || 'N/A'}\n` +
                               `*DISPATCH TIME:* ${s.dispatchTime || 'N/A'}\n\n` +
-                              `*--- DETAILED SUMMARY ---*\n` +
-                              `*FRESH BIRD ->* PICS: ${freshTotP} | WT: ${freshTotW.toFixed(1)} | AVG: ${freshAvg}\n` +
-                              `*LAME BIRD ->* PICS: ${lameTotP} | WT: ${lameTotW.toFixed(1)} | AVG: ${lameAvg}\n` +
-                              `*MAGGOT BIRD ->* PICS: ${maggotTotP} | WT: ${maggotTotW.toFixed(1)} | AVG: ${maggotAvg}\n\n` +
-                              `*TOTAL PICS:* ${overallTotP}\n` +
-                              `*TOTAL WEIGHT:* ${overallTotW.toFixed(1)}\n` +
-                              `*OVERALL AVG:* ${overallAvg}`;
+                              `*--- CATEGORY SUMMARY ---*\n` +
+                              `▫️ *FRESH:* PICS: ${freshTotP} | WT: ${freshTotW.toFixed(1)} | AVG: ${freshAvg}\n` +
+                              `▫️ *LAME:* PICS: ${lameTotP} | WT: ${lameTotW.toFixed(1)} | AVG: ${lameAvg}\n` +
+                              `▫️ *MAGGOT:* PICS: ${maggotTotP} | WT: ${maggotTotW.toFixed(1)} | AVG: ${maggotAvg}\n\n` +
+                              `*--- OVERALL TOTAL ---*\n` +
+                              `📦 *TOTAL PICS:* ${overallTotP}\n` +
+                              `⚖️ *TOTAL WEIGHT:* ${overallTotW.toFixed(1)}\n` +
+                              `📊 *OVERALL AVG:* ${overallAvg}`;
 
+            // অ্যান্ড্রয়েড নেটিভ শেয়ার শিট (WebView-এ WhatsApp বা অন্য যেকোনো অ্যাপে পাঠানোর জন্য সেরা পদ্ধতি)
             if (navigator.share) {
                 navigator.share({
-                    title: 'DC DETAILS',
+                    title: `DC Statement - ${s.farmerName}`,
                     text: detailsText
                 }).catch((error) => {
+                    console.log('Share canceled or failed', error);
                     copyToClipboardFallback(detailsText);
                 });
             } else {
@@ -1716,7 +1707,7 @@
         function copyToClipboardFallback(text) {
             if (navigator.clipboard && navigator.clipboard.writeText) {
                 navigator.clipboard.writeText(text).then(() => {
-                    showCustomAlert("COPIED", "DC DETAILS COPIED TO CLIPBOARD!");
+                    showCustomAlert("COPIED TO CLIPBOARD", "STATEMENT COPIED! YOU CAN NOW PASTE DIRECTLY INTO WHATSAPP.");
                 }).catch(() => {
                     fallbackTextCopy(text);
                 });
@@ -1735,7 +1726,7 @@
             try {
                 let successful = document.execCommand('copy');
                 if (successful) {
-                    showCustomAlert("COPIED", "DC DETAILS COPIED TO CLIPBOARD!");
+                    showCustomAlert("COPIED TO CLIPBOARD", "STATEMENT COPIED! YOU CAN NOW PASTE DIRECTLY INTO WHATSAPP.");
                 } else {
                     showCustomAlert("ERROR", "COULD NOT COPY TEXT!");
                 }
