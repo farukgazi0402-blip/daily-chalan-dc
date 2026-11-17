@@ -5,7 +5,7 @@
     <author email="support@example.com" href="https://github.com/">Faruk Gazi</author>
     <content src="index.html" />
     
-    <!-- মূল অ্যাপ আইকন ও স্প্ল্যাশ স্ক্রিন কনফিগারেশন -->
+    <!-- অ্যাপের আইকন -->
     <icon src="icon.png" />
 
     <allow-intent href="http://*/*" />
@@ -13,24 +13,15 @@
     <preference name="orientation" value="default" />
     <preference name="fullscreen" value="false" />
 
-    <!-- পিডিএফ ও শেয়ারিং প্লাগইন -->
+    <!-- প্রয়োজনীয় প্লাগইনসমূহ -->
     <plugin name="cordova-plugin-file" spec="^7.0.0" />
     <plugin name="cordova-plugin-x-socialsharing" spec="^6.0.4" />
-    
-    <!-- স্প্ল্যাশ স্ক্রিন কন্ট্রোল করার প্লাগইন -->
     <plugin name="cordova-plugin-splashscreen" spec="^6.0.1" />
 
     <platform name="android">
         <allow-intent href="market:*" />
         
-        <!-- অ্যান্ড্রয়েড স্টোরেজ পারমিশন -->
-        <preference name="AndroidPersistentFileLocation" value="Compatibility" />
-        <edit-config file="app/src/main/AndroidManifest.xml" mode="merge" target="/manifest">
-            <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-            <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-        </edit-config>
-
-        <!-- রোবট আইকন বা ডিফল্ট স্প্ল্যাশ স্ক্রিন সরিয়ে আপনার লোগো দেখানোর সেটিংস -->
+        <!-- স্প্ল্যাশ স্ক্রিন সেটিংস -->
         <preference name="SplashScreen" value="screen" />
         <preference name="SplashScreenDelay" value="0" />
         <preference name="ShowSplashScreen" value="true" />
