@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>D.C Entry App</title>
-    <!-- অ্যাপের ভেতরে ক্যানভাস দিয়ে পারফেক্ট ইমেজ ও পিডিএফ বানানোর জন্য লাইব্রেরি -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         * {
             box-sizing: border-box;
@@ -180,7 +178,7 @@
             user-select: none;
         }
 
-        /* Mode & Type Buttons Row */
+        /* Mode & Type Buttons Row (PICS, F, L, M) */
         .mode-row {
             display: flex;
             gap: 4px;
@@ -532,21 +530,31 @@
         }
         .fs-btn-row {
             display: flex;
-            gap: 6px;
+            gap: 10px;
             margin-top: 10px;
             width: 100%;
         }
         .fs-primary-btn {
             flex: 1;
-            padding: 10px 4px;
+            padding: 12px;
             background: #198754;
             color: #fff;
             border: none;
             border-radius: 10px;
             font-weight: bold;
-            font-size: 11px;
+            font-size: 14px;
             cursor: pointer;
-            text-align: center;
+        }
+        .fs-secondary-btn {
+            flex: 1;
+            padding: 12px;
+            background: #64748b;
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            font-weight: bold;
+            font-size: 14px;
+            cursor: pointer;
         }
 
         /* হিস্ট্রি পেজ কার্ড ও সিলেক্ট স্টাইল */
@@ -785,6 +793,46 @@
             justify-content: space-around;
             padding: 2px 0;
         }
+
+        /* Print Media Style for A4 & A5 */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #pdfFullscreenPage, #pdfFullscreenPage * {
+                visibility: visible;
+            }
+            #pdfFullscreenPage {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                height: 100%;
+                background: #fff;
+                padding: 0;
+            }
+            .fs-header, .fs-btn-row {
+                display: none;
+            }
+            .fs-body {
+                padding: 0;
+                background: #fff;
+            }
+            .pdf-body-content {
+                border: none;
+                box-shadow: none;
+                padding: 4mm 6mm;
+                height: 100vh;
+            }
+            .pdf-farmer-name { font-size: 15px !important; }
+            .pdf-trader-name { font-size: 13px !important; }
+            .pdf-meta-text { font-size: 10px !important; }
+            .pdf-doc-right { font-size: 10px !important; }
+            .pdf-col-title { font-size: 11px !important; padding: 2px 0 !important; }
+            .pdf-entry-row { font-size: 12px !important; padding: 1px 0 !important; }
+            .pdf-entry-row .entry-pics { font-size: 10px !important; }
+            .pdf-summary-box { font-size: 11px !important; padding: 6px !important; }
+        }
     </style>
 </head>
 <body>
@@ -799,17 +847,17 @@
         <div class="summary-row fresh-row" id="freshSummary">
             <span>FRESH [PIC: 0]</span>
             <span>WT: 0.0</span>
-            <span>AVG: 0.00</span>
+            <span>AVG: 0.000</span>
         </div>
         <div class="summary-row lame-row" id="lameSummary">
             <span>LAME [PIC: 0]</span>
             <span>WT: 0.0</span>
-            <span>AVG: 0.00</span>
+            <span>AVG: 0.000</span>
         </div>
         <div class="summary-row maggot-row" id="maggotSummary">
             <span>MAGGOT [PIC: 0]</span>
             <span>WT: 0.0</span>
-            <span>AVG: 0.00</span>
+            <span>AVG: 0.000</span>
         </div>
     </div>
 
@@ -817,7 +865,7 @@
     <div class="summary-bar" id="summaryBar">
         <span>TOTAL PIC-0</span>
         <span>TOTAL WT-0.0</span>
-        <span>AVG-0.00</span>
+        <span>AVG-0.000</span>
     </div>
 
     <!-- Mode & Type Buttons Row (PICS, F, L, M) -->
@@ -937,7 +985,7 @@
                 </div>
                 <div class="fs-btn-row">
                     <button class="fs-primary-btn" onclick="saveSellerDetails()">SAVE</button>
-                    <button class="fs-primary-btn" style="background:#64748b;" onclick="closeSellerFullscreen()">CANCEL</button>
+                    <button class="fs-secondary-btn" onclick="closeSellerFullscreen()">CANCEL</button>
                 </div>
             </div>
         </div>
@@ -954,11 +1002,13 @@
         </div>
         <div class="fs-body">
             <div class="fs-content-box" style="max-width: 500px; gap: 8px;">
+                <!-- Search Box -->
                 <div class="fs-form-group" style="margin-bottom: 0;">
                     <label>SEARCH (CUSTOMER / FARMER)</label>
                     <input type="text" id="historySearchInput" placeholder="TYPE NAME TO SEARCH..." oninput="filterHistoryList()">
                 </div>
 
+                <!-- Date Range Filter -->
                 <div style="display: flex; gap: 8px; width: 100%;">
                     <div class="fs-form-group" style="flex: 1; margin-bottom: 0;">
                         <label>FROM DATE</label>
@@ -970,10 +1020,11 @@
                     </div>
                 </div>
                 <div style="display: flex; gap: 8px; width: 100%; margin-bottom: 4px;">
-                    <button class="fs-primary-btn" style="background:#64748b; padding: 6px; font-size: 11px;" onclick="resetHistoryFilters()">RESET</button>
+                    <button class="fs-secondary-btn" style="padding: 6px; font-size: 11px;" onclick="resetHistoryFilters()">RESET</button>
                     <button class="fs-primary-btn" id="deleteSelectedBtn" style="padding: 6px; font-size: 11px; background: #dc3545; display: none;" onclick="deleteSelectedHistoryItems()">DELETE SELECTED</button>
                 </div>
 
+                <!-- History Cards Container -->
                 <div id="historyItemsContainer" style="width: 100%; display: flex; flex-direction: column; gap: 8px;"></div>
             </div>
         </div>
@@ -1019,8 +1070,8 @@
             <div class="pdf-body-content" id="pdfBodyContent">
             </div>
             <div class="fs-btn-row" style="max-width: 100%; padding: 0 4px 4px 4px; flex-shrink: 0;">
-                <button class="fs-primary-btn" style="background:#0284c7;" onclick="shareImageAction()">SHARE IMAGE</button>
-                <button class="fs-primary-btn" style="background:#059669;" onclick="shareDetailsAction()">WHATSAPP TEXT</button>
+                <button class="fs-primary-btn" style="background:#0284c7; padding: 6px; font-size:12px;" onclick="sharePdfAction()">SHARE PDF / PRINT</button>
+                <button class="fs-primary-btn" style="padding: 6px; font-size:12px;" onclick="shareDetailsAction()">SHARE DETAILS</button>
             </div>
         </div>
     </div>
@@ -1476,9 +1527,7 @@
             let s = record.seller;
             let data = record.data;
 
-            // ফাইলের নাম: [Farmer Name] To [Trader Name] ([Date])
-            let customFileName = `${s.farmerName || 'FARMER'} To ${s.traderName || 'TRADER'} (${s.date || todayFormatted})`;
-            document.getElementById('pdfModalTitle').innerText = customFileName;
+            document.getElementById('pdfModalTitle').innerText = `${s.farmerName} - ${s.traderName}`;
 
             let freshTotW = 0, freshTotP = 0;
             let lameTotW = 0, lameTotP = 0;
@@ -1531,10 +1580,10 @@
                 `;
             }
 
-            let freshAvg = freshTotP > 0 ? (freshTotW / freshTotP).toFixed(2) : '0.00';
-            let lameAvg = lameTotP > 0 ? (lameTotW / lameTotP).toFixed(2) : '0.00';
-            let maggotAvg = maggotTotP > 0 ? (maggotTotW / maggotTotP).toFixed(2) : '0.00';
-            let overallAvg = overallTotP > 0 ? (overallTotW / overallTotP).toFixed(2) : '0.00';
+            let freshAvg = freshTotP > 0 ? (freshTotW / freshTotP).toFixed(3) : '0.000';
+            let lameAvg = lameTotP > 0 ? (lameTotW / lameTotP).toFixed(3) : '0.000';
+            let maggotAvg = maggotTotP > 0 ? (maggotTotW / maggotTotP).toFixed(3) : '0.000';
+            let overallAvg = overallTotP > 0 ? (overallTotW / overallTotP).toFixed(3) : '0.000';
 
             let pdfHtml = `
                 <div class="pdf-doc-header">
@@ -1582,33 +1631,23 @@
             document.getElementById('pdfFullscreenPage').style.display = 'flex';
         }
 
-        // পুরো রিপোর্টটি ইমেজ (PNG) আকারে তৈরি করে শেয়ার বা ডাউনলোড করার ফাংশন
-        function shareImageAction() {
-            if (!currentViewingRecord) return;
-            let s = currentViewingRecord.seller;
-            let fileName = `${s.farmerName || 'FARMER'} To ${s.traderName || 'TRADER'} (${s.date || todayFormatted}).png`;
-
-            let element = document.getElementById('pdfBodyContent');
-            
-            html2canvas(element, { scale: 3, useCORS: true }).then(canvas => {
-                canvas.toBlob(function(blob) {
-                    let file = new File([blob], fileName, { type: 'image/png' });
-                    
-                    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                        navigator.share({
-                            files: [file],
-                            title: fileName,
-                            text: `DC Statement: ${s.farmerName} To ${s.traderName}`
-                        }).catch(() => {});
-                    } else {
-                        // শেয়ার এপিআই সাপোর্ট না করলে ইমেজ সরাসরি ডাউনলোড হবে
-                        let link = document.createElement('a');
-                        link.download = fileName;
-                        link.href = canvas.toDataURL('image/png');
-                        link.click();
-                    }
-                });
-            });
+        function sharePdfAction() {
+            try {
+                if (navigator.share) {
+                    let s = currentViewingRecord.seller;
+                    let summaryText = `DC STATEMENT SUMMARY\nFarmer: ${s.farmerName}\nTrader: ${s.traderName}\nDate: ${s.date}`;
+                    navigator.share({
+                        title: 'DC Statement',
+                        text: summaryText
+                    }).catch(() => {
+                        window.print();
+                    });
+                } else {
+                    window.print();
+                }
+            } catch (err) {
+                window.print();
+            }
         }
 
         function shareDetailsAction() {
@@ -1641,10 +1680,10 @@
                 });
             });
 
-            let freshAvg = freshTotP > 0 ? (freshTotW / freshTotP).toFixed(2) : '0.00';
-            let lameAvg = lameTotP > 0 ? (lameTotW / lameTotP).toFixed(2) : '0.00';
-            let maggotAvg = maggotTotP > 0 ? (maggotTotW / maggotTotP).toFixed(2) : '0.00';
-            let overallAvg = overallTotP > 0 ? (overallTotW / overallTotP).toFixed(2) : '0.00';
+            let freshAvg = freshTotP > 0 ? (freshTotW / freshTotP).toFixed(3) : '0.000';
+            let lameAvg = lameTotP > 0 ? (lameTotW / lameTotP).toFixed(3) : '0.000';
+            let maggotAvg = maggotTotP > 0 ? (maggotTotW / maggotTotP).toFixed(3) : '0.000';
+            let overallAvg = overallTotP > 0 ? (overallTotW / overallTotP).toFixed(3) : '0.000';
 
             let detailsText = `*DC STATEMENT DETAILS*\n` +
                               `*FARMER:* *${s.farmerName || 'N/A'}*\n` +
@@ -1654,27 +1693,56 @@
                               `*DATE:* ${s.date}\n` +
                               `*LOADING TIME:* ${s.loadingTime || 'N/A'}\n` +
                               `*DISPATCH TIME:* ${s.dispatchTime || 'N/A'}\n\n` +
-                              `*--- SUMMARY ---*\n` +
-                              `*FRESH:* PICS: ${freshTotP} | WT: ${freshTotW.toFixed(1)} | AVG: ${freshAvg}\n` +
-                              `*LAME:* PICS: ${lameTotP} | WT: ${lameTotW.toFixed(1)} | AVG: ${lameAvg}\n` +
-                              `*MAGGOT:* PICS: ${maggotTotP} | WT: ${maggotTotW.toFixed(1)} | AVG: ${maggotAvg}\n\n` +
+                              `*--- DETAILED SUMMARY ---*\n` +
+                              `*FRESH BIRD ->* PICS: ${freshTotP} | WT: ${freshTotW.toFixed(1)} | AVG: ${freshAvg}\n` +
+                              `*LAME BIRD ->* PICS: ${lameTotP} | WT: ${lameTotW.toFixed(1)} | AVG: ${lameAvg}\n` +
+                              `*MAGGOT BIRD ->* PICS: ${maggotTotP} | WT: ${maggotTotW.toFixed(1)} | AVG: ${maggotAvg}\n\n` +
                               `*TOTAL PICS:* ${overallTotP}\n` +
                               `*TOTAL WEIGHT:* ${overallTotW.toFixed(1)}\n` +
                               `*OVERALL AVG:* ${overallAvg}`;
 
-            let encodedText = encodeURIComponent(detailsText);
-            let whatsappUrl = `https://api.whatsapp.com/send?text=${encodedText}`;
-
             if (navigator.share) {
                 navigator.share({
-                    title: `${s.farmerName} To ${s.traderName}`,
+                    title: 'DC DETAILS',
                     text: detailsText
-                }).catch(() => {
-                    window.open(whatsappUrl, '_blank');
+                }).catch((error) => {
+                    copyToClipboardFallback(detailsText);
                 });
             } else {
-                window.open(whatsappUrl, '_blank');
+                copyToClipboardFallback(detailsText);
             }
+        }
+
+        function copyToClipboardFallback(text) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(() => {
+                    showCustomAlert("COPIED", "DC DETAILS COPIED TO CLIPBOARD!");
+                }).catch(() => {
+                    fallbackTextCopy(text);
+                });
+            } else {
+                fallbackTextCopy(text);
+            }
+        }
+
+        function fallbackTextCopy(text) {
+            let textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.position = "fixed";  
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                let successful = document.execCommand('copy');
+                if (successful) {
+                    showCustomAlert("COPIED", "DC DETAILS COPIED TO CLIPBOARD!");
+                } else {
+                    showCustomAlert("ERROR", "COULD NOT COPY TEXT!");
+                }
+            } catch (err) {
+                showCustomAlert("ERROR", "COULD NOT COPY TEXT!");
+            }
+            document.body.removeChild(textArea);
         }
 
         function saveSellerDetails() {
@@ -1923,10 +1991,10 @@
                 container.appendChild(colDiv);
             }
 
-            let freshAvg = freshTotalPics > 0 ? (freshTotalWeight / freshTotalPics).toFixed(2) : '0.00';
-            let lameAvg = lameTotalPics > 0 ? (lameTotalWeight / lameTotalPics).toFixed(2) : '0.00';
-            let maggotAvg = maggotTotalPics > 0 ? (maggotTotalWeight / maggotTotalPics).toFixed(2) : '0.00';
-            let overallAvg = overallTotalPics > 0 ? (overallTotalWeight / overallTotalPics).toFixed(2) : '0.00';
+            let freshAvg = freshTotalPics > 0 ? (freshTotalWeight / freshTotalPics).toFixed(3) : '0.000';
+            let lameAvg = lameTotalPics > 0 ? (lameTotalWeight / lameTotalPics).toFixed(3) : '0.000';
+            let maggotAvg = maggotTotalPics > 0 ? (maggotTotalWeight / maggotTotalPics).toFixed(3) : '0.000';
+            let overallAvg = overallTotalPics > 0 ? (overallTotalWeight / overallTotalPics).toFixed(3) : '0.000';
 
             document.getElementById('freshSummary').innerHTML = `
                 <span>FRESH [PIC: ${freshTotalPics}]</span>
