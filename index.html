@@ -1031,7 +1031,7 @@
             </div>
             <div class="fs-btn-row" style="max-width: 100%; padding: 0 4px 4px 4px; flex-shrink: 0;">
                 <button class="fs-primary-btn" style="background:#dc2626; padding: 8px; font-size:12px;" onclick="openOrShareVectorPdf()">OPEN / SHARE PDF</button>
-                <button class="fs-primary-btn" style="background:#0284c7; padding: 8px; font-size:12px;" onclick="shareDetailsAction()">SHARE TEXT</button>
+                <button class="fs-primary-btn" style="background:#16a34a; padding: 8px; font-size:12px;" onclick="shareDetailsAction()">SHARE TEXT</button>
             </div>
         </div>
     </div>
@@ -1477,45 +1477,81 @@
             }
         }
 
-        function generateA4PdfFullscreen(record, fromPage = 'menu') {
-            previousFullscreenPage = fromPage;
-            currentViewingRecord = record;
-            let s = record.seller;
-            let data = record.data;
-
-            document.getElementById('pdfModalTitle').innerText = `${s.farmerName || 'DC'} - ${s.traderName || 'STATEMENT'}`;
+        function computeRecordMetrics(record) {
+            const s = record.seller || {};
+            const data = record.data || [];
 
             let freshTotW = 0, freshTotP = 0;
             let lameTotW = 0, lameTotP = 0;
             let maggotTotW = 0, maggotTotP = 0;
             let overallTotW = 0, overallTotP = 0;
 
+            let colP = [0, 0, 0, 0, 0];
+            let colW = [0, 0, 0, 0, 0];
+
+            for (let c = 0; c < 5; c++) {
+                const colArr = data[c] || [];
+                colArr.forEach(e => {
+                    const w = parseFloat(e.weight) || 0;
+                    const p = parseInt(e.pics, 10) || 0;
+                    const t = e.type || 'F';
+
+                    colP[c] += p;
+                    colW[c] += w;
+                    overallTotP += p;
+                    overallTotW += w;
+
+                    if (t === 'F') {
+                        freshTotP += p;
+                        freshTotW += w;
+                    } else if (t === 'L') {
+                        lameTotP += p;
+                        lameTotW += w;
+                    } else if (t === 'M') {
+                        maggotTotP += p;
+                        maggotTotW += w;
+                    }
+                });
+            }
+
+            return {
+                s,
+                data,
+                colP,
+                colW,
+                freshTotP,
+                freshTotW,
+                freshAvg: freshTotP > 0 ? (freshTotW / freshTotP).toFixed(3) : '0.000',
+                lameTotP,
+                lameTotW,
+                lameAvg: lameTotP > 0 ? (lameTotW / lameTotP).toFixed(3) : '0.000',
+                maggotTotP,
+                maggotTotW,
+                maggotAvg: maggotTotP > 0 ? (maggotTotW / maggotTotP).toFixed(3) : '0.000',
+                overallTotP,
+                overallTotW,
+                overallAvg: overallTotP > 0 ? (overallTotW / overallTotP).toFixed(3) : '0.000'
+            };
+        }
+
+        function generateA4PdfFullscreen(record, fromPage = 'menu') {
+            previousFullscreenPage = fromPage;
+            currentViewingRecord = record;
+            const m = computeRecordMetrics(record);
+            const { s, data } = m;
+
+            document.getElementById('pdfModalTitle').innerText = `${s.farmerName || 'DC'} - ${s.traderName || 'STATEMENT'}`;
+
             let columnsHtml = '';
             for (let i = 0; i < 5; i++) {
                 let col = data[i] || [];
-                let colP = 0, colW = 0;
                 let entriesRows = '';
                 
                 for (let r = 0; r < 20; r++) {
                     let e = col[r];
                     if (e) {
-                        let w = parseFloat(e.weight);
                         let p = e.pics;
                         let t = e.type || 'F';
-                        colP += p;
-                        colW += w;
-                        overallTotP += p;
-                        overallTotW += w;
-                        if (t === 'F') {
-                            freshTotP += p;
-                            freshTotW += w;
-                        } else if (t === 'L') {
-                            lameTotP += p;
-                            lameTotW += w;
-                        } else if (t === 'M') {
-                            maggotTotP += p;
-                            maggotTotW += w;
-                        }
                         let wClass = t === 'F' ? 'weight-fresh' : (t === 'L' ? 'weight-lame' : 'weight-maggot');
                         entriesRows += `<div class="pdf-entry-row"><span style="font-size:9px; font-weight:bold; color:#000;">${p}</span>-<span class="${wClass}" style="font-size:11px;">${e.weight}</span></div>`;
                     } else {
@@ -1530,16 +1566,11 @@
                             ${entriesRows}
                         </div>
                         <div style="margin-top: 2px; font-size:9px; font-weight:bold; text-align:center; border-top:1px solid #cbd5e1; padding-top:2px; color:#334155; flex-shrink:0; background:#f8fafc;">
-                            P:${colP} W:${colW.toFixed(1)}
+                            P:${m.colP[i]} W:${m.colW[i].toFixed(1)}
                         </div>
                     </div>
                 `;
             }
-
-            let freshAvg = freshTotP > 0 ? (freshTotW / freshTotP).toFixed(3) : '0.000';
-            let lameAvg = lameTotP > 0 ? (lameTotW / lameTotP).toFixed(3) : '0.000';
-            let maggotAvg = maggotTotP > 0 ? (maggotTotW / maggotTotP).toFixed(3) : '0.000';
-            let overallAvg = overallTotP > 0 ? (overallTotW / overallTotP).toFixed(3) : '0.000';
 
             let pdfHtml = `
                 <div class="pdf-doc-header">
@@ -1561,24 +1592,24 @@
 
                 <div class="pdf-summary-box">
                     <div class="pdf-summary-line" style="color: #0047ab; border-bottom:1px dashed #cbd5e1; padding-bottom:2px; margin-bottom:2px; font-size:10px;">
-                        <span>FRESH [PIC: ${freshTotP}]</span>
-                        <span>WT: ${freshTotW.toFixed(1)}</span>
-                        <span>AVG: ${freshAvg}</span>
+                        <span>FRESH [PIC: ${m.freshTotP}]</span>
+                        <span>WT: ${m.freshTotW.toFixed(1)} KG</span>
+                        <span>AVG: ${m.freshAvg} KG</span>
                     </div>
                     <div class="pdf-summary-line" style="color: #dc3545; border-bottom:1px dashed #cbd5e1; padding-bottom:2px; margin-bottom:2px; font-size:10px;">
-                        <span>LAME [PIC: ${lameTotP}]</span>
-                        <span>WT: ${lameTotW.toFixed(1)}</span>
-                        <span>AVG: ${lameAvg}</span>
+                        <span>LAME [PIC: ${m.lameTotP}]</span>
+                        <span>WT: ${m.lameTotW.toFixed(1)} KG</span>
+                        <span>AVG: ${m.lameAvg} KG</span>
                     </div>
                     <div class="pdf-summary-line" style="color: #8b5cf6; border-bottom:1px dashed #cbd5e1; padding-bottom:2px; margin-bottom:2px; font-size:10px;">
-                        <span>MAGGOT [PIC: ${maggotTotP}]</span>
-                        <span>WT: ${maggotTotW.toFixed(1)}</span>
-                        <span>AVG: ${maggotAvg}</span>
+                        <span>MAGGOT [PIC: ${m.maggotTotP}]</span>
+                        <span>WT: ${m.maggotTotW.toFixed(1)} KG</span>
+                        <span>AVG: ${m.maggotAvg} KG</span>
                     </div>
                     <div class="pdf-summary-line" style="color: #0f172a; font-size:11px;">
-                        <span>TOTAL PIC: ${overallTotP}</span>
-                        <span>TOTAL WT: ${overallTotW.toFixed(1)}</span>
-                        <span>AVG: ${overallAvg}</span>
+                        <span>TOTAL PIC: ${m.overallTotP}</span>
+                        <span>TOTAL WT: ${m.overallTotW.toFixed(1)} KG</span>
+                        <span>AVG: ${m.overallAvg} KG</span>
                     </div>
                 </div>
             `;
@@ -1587,186 +1618,229 @@
             document.getElementById('pdfFullscreenPage').style.display = 'flex';
         }
 
-        // আসল ভেক্টর টেক্সট PDF তৈরি করে এক্সটার্নাল PDF ভিউয়ার (Google Drive / PDF Viewer) বা শেয়ার শিট দিয়ে ওপেন করে
-        function buildVectorPdfBlob(record) {
-            if (!window.jspdf || !window.jspdf.jsPDF) {
-                throw new Error("jsPDF library not loaded");
+        // Raw Vector PDF 1.4 Fallback (অফলাইনে বা CDN ব্লক থাকলেও আসল ভেক্টর টেক্সট PDF তৈরি করবে)
+        function escapePdfText(str) {
+            return String(str || '').replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+        }
+
+        function buildRawVectorPdfBlob(record) {
+            const m = computeRecordMetrics(record);
+            const { s, data, colP, colW } = m;
+
+            let ops = [];
+            ops.push("BT /F2 14 Tf 40 805 Td (DC STATEMENT REPORT) Tj ET");
+            ops.push("BT /F2 10 Tf 40 786 Td (FARMER: " + escapePdfText(s.farmerName || 'N/A') + ") Tj ET");
+            ops.push("BT /F2 10 Tf 40 772 Td (TRADER: " + escapePdfText(s.traderName || 'N/A') + ") Tj ET");
+            ops.push("BT /F1 9 Tf 40 758 Td (ADDRESS: " + escapePdfText(s.address || 'N/A') + "  |  CAR NO: " + escapePdfText(s.carNumber || 'N/A') + ") Tj ET");
+
+            ops.push("BT /F2 9 Tf 415 805 Td (DATE: " + escapePdfText(s.date || 'N/A') + ") Tj ET");
+            ops.push("BT /F2 9 Tf 415 791 Td (LOAD: " + escapePdfText(s.loadingTime || 'N/A') + ") Tj ET");
+            ops.push("BT /F2 9 Tf 415 777 Td (DISP: " + escapePdfText(s.dispatchTime || 'N/A') + ") Tj ET");
+
+            ops.push("0.8 w 40 748 m 555 748 l S");
+
+            const colX = [40, 143, 246, 349, 452];
+            const colWBox = 103;
+            const topY = 736;
+            const rowH = 22;
+
+            // Headers
+            for (let c = 0; c < 5; c++) {
+                ops.push("0.5 w " + colX[c] + " " + (topY - 14) + " " + colWBox + " 14 re S");
+                ops.push("BT /F2 8 Tf " + (colX[c] + 34) + " " + (topY - 10) + " Td (COL " + (c + 1) + ") Tj ET");
             }
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
-            const s = record.seller || {};
-            const data = record.data || [];
-
-            let freshTotW = 0, freshTotP = 0;
-            let lameTotW = 0, lameTotP = 0;
-            let maggotTotW = 0, maggotTotP = 0;
-            let overallTotW = 0, overallTotP = 0;
-
-            // Header Section (Vector Text)
-            doc.setFont("helvetica", "bold");
-            doc.setFontSize(14);
-            doc.setTextColor(15, 23, 42);
-            doc.text("DC STATEMENT REPORT", 14, 14);
-
-            doc.setFontSize(10);
-            doc.text(`FARMER: ${s.farmerName || 'N/A'}`, 14, 21);
-            doc.setTextColor(2, 132, 199);
-            doc.text(`TRADER: ${s.traderName || 'N/A'}`, 14, 26);
-
-            doc.setTextColor(71, 85, 105);
-            doc.setFont("helvetica", "normal");
-            doc.setFontSize(9);
-            doc.text(`ADDRESS: ${s.address || 'N/A'}  |  CAR NO: ${s.carNumber || 'N/A'}`, 14, 31);
-
-            doc.setTextColor(30, 41, 59);
-            doc.setFont("helvetica", "bold");
-            doc.text(`DATE: ${s.date || 'N/A'}`, 196, 14, { align: "right" });
-            doc.text(`LOAD: ${s.loadingTime || 'N/A'}`, 196, 19, { align: "right" });
-            doc.text(`DISP: ${s.dispatchTime || 'N/A'}`, 196, 24, { align: "right" });
-
-            doc.setDrawColor(15, 23, 42);
-            doc.setLineWidth(0.5);
-            doc.line(14, 34, 196, 34);
-
-            // Build 5-Column Vector Table (20 rows + footer row)
-            const head = [["COL 1", "COL 2", "COL 3", "COL 4", "COL 5"]];
-            const body = [];
-
-            let colP = [0, 0, 0, 0, 0];
-            let colW = [0, 0, 0, 0, 0];
-            let entryTypesGrid = Array.from({ length: 20 }, () => Array(5).fill('F'));
-
+            // 20 Entry Rows
             for (let r = 0; r < 20; r++) {
-                let rowCells = [];
+                let y = topY - 14 - ((r + 1) * rowH);
                 for (let c = 0; c < 5; c++) {
-                    let colArr = data[c] || [];
-                    let e = colArr[r];
+                    ops.push("0.3 w " + colX[c] + " " + y + " " + colWBox + " " + rowH + " re S");
+                    const e = (data[c] || [])[r];
                     if (e) {
-                        let w = parseFloat(e.weight) || 0;
-                        let p = parseInt(e.pics, 10) || 0;
-                        let t = e.type || 'F';
-                        entryTypesGrid[r][c] = t;
-
-                        colP[c] += p;
-                        colW[c] += w;
-                        overallTotP += p;
-                        overallTotW += w;
-
-                        if (t === 'F') {
-                            freshTotP += p;
-                            freshTotW += w;
-                        } else if (t === 'L') {
-                            lameTotP += p;
-                            lameTotW += w;
-                        } else if (t === 'M') {
-                            maggotTotP += p;
-                            maggotTotW += w;
-                        }
-
-                        rowCells.push(`${p}-${e.weight}`);
-                    } else {
-                        rowCells.push("");
+                        ops.push("BT /F2 8 Tf " + (colX[c] + 18) + " " + (y + 7) + " Td (" + escapePdfText(e.pics + "-" + e.weight) + ") Tj ET");
                     }
                 }
-                body.push(rowCells);
             }
 
             // Column Totals Row
-            let colTotalsRow = [];
+            let totY = topY - 14 - (21 * rowH);
             for (let c = 0; c < 5; c++) {
-                colTotalsRow.push(`P:${colP[c]} W:${colW[c].toFixed(1)}`);
+                ops.push("0.5 w " + colX[c] + " " + totY + " " + colWBox + " 16 re S");
+                ops.push("BT /F2 7.5 Tf " + (colX[c] + 8) + " " + (totY + 5) + " Td (P:" + colP[c] + " W:" + colW[c].toFixed(1) + ") Tj ET");
             }
-            body.push(colTotalsRow);
 
-            doc.autoTable({
-                startY: 37,
-                head: head,
-                body: body,
-                theme: 'grid',
-                styles: {
-                    font: "helvetica",
-                    fontSize: 8.5,
-                    cellPadding: 1.3,
-                    halign: 'center',
-                    valign: 'middle',
-                    lineColor: [148, 163, 184],
-                    lineWidth: 0.2
-                },
-                headStyles: {
-                    fillColor: [15, 23, 42],
-                    textColor: [255, 255, 255],
-                    fontStyle: 'bold',
-                    fontSize: 8.5
-                },
-                didParseCell: function(hookData) {
-                    if (hookData.section === 'body') {
-                        if (hookData.row.index === 20) {
-                            hookData.cell.styles.fillColor = [241, 245, 249];
-                            hookData.cell.styles.fontStyle = 'bold';
-                            hookData.cell.styles.textColor = [30, 41, 59];
-                        } else {
-                            let t = entryTypesGrid[hookData.row.index][hookData.column.index];
-                            hookData.cell.styles.fontStyle = 'bold';
-                            if (t === 'F') hookData.cell.styles.textColor = [0, 71, 171];
-                            else if (t === 'L') hookData.cell.styles.textColor = [220, 53, 69];
-                            else if (t === 'M') hookData.cell.styles.textColor = [139, 92, 246];
-                        }
-                    }
-                },
-                margin: { left: 14, right: 14 }
-            });
+            // Summary Lines
+            let sumY = totY - 18;
+            ops.push("BT /F2 9 Tf 40 " + sumY + " Td (FRESH [PIC: " + m.freshTotP + "]  WT: " + m.freshTotW.toFixed(1) + " KG  AVG: " + m.freshAvg + " KG) Tj ET");
+            ops.push("BT /F2 9 Tf 40 " + (sumY - 13) + " Td (LAME [PIC: " + m.lameTotP + "]  WT: " + m.lameTotW.toFixed(1) + " KG  AVG: " + m.lameAvg + " KG) Tj ET");
+            ops.push("BT /F2 9 Tf 40 " + (sumY - 26) + " Td (MAGGOT [PIC: " + m.maggotTotP + "]  WT: " + m.maggotTotW.toFixed(1) + " KG  AVG: " + m.maggotAvg + " KG) Tj ET");
+            ops.push("BT /F2 9.5 Tf 40 " + (sumY - 41) + " Td (TOTAL PIC: " + m.overallTotP + "  TOTAL WT: " + m.overallTotW.toFixed(1) + " KG  AVG: " + m.overallAvg + " KG) Tj ET");
 
-            // Summary Section (Vector Text)
-            let finalY = (doc.lastAutoTable && doc.lastAutoTable.finalY) ? doc.lastAutoTable.finalY + 5 : 185;
+            const contentStream = ops.join("\n");
+            const objects = [];
+            objects.push("1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
+            objects.push("2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n");
+            objects.push("3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /Contents 6 0 R >>\nendobj\n");
+            objects.push("4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n");
+            objects.push("5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>\nendobj\n");
+            objects.push("6 0 obj\n<< /Length " + contentStream.length + " >>\nstream\n" + contentStream + "\nendstream\nendobj\n");
 
-            let freshAvg = freshTotP > 0 ? (freshTotW / freshTotP).toFixed(3) : '0.000';
-            let lameAvg = lameTotP > 0 ? (lameTotW / lameTotP).toFixed(3) : '0.000';
-            let maggotAvg = maggotTotP > 0 ? (maggotTotW / maggotTotP).toFixed(3) : '0.000';
-            let overallAvg = overallTotP > 0 ? (overallTotW / overallTotP).toFixed(3) : '0.000';
+            let pdf = "%PDF-1.4\n";
+            let offsets = [0];
+            for (let i = 0; i < objects.length; i++) {
+                offsets.push(pdf.length);
+                pdf += objects[i];
+            }
+            const xrefStart = pdf.length;
+            pdf += "xref\n0 " + (objects.length + 1) + "\n";
+            pdf += "0000000000 65535 f \n";
+            for (let i = 1; i < offsets.length; i++) {
+                pdf += String(offsets[i]).padStart(10, "0") + " 00000 n \n";
+            }
+            pdf += "trailer\n<< /Size " + (objects.length + 1) + " /Root 1 0 R >>\nstartxref\n" + xrefStart + "\n%%EOF";
 
-            doc.setFillColor(241, 243, 245);
-            doc.rect(14, finalY, 182, 24, 'F');
-            doc.setDrawColor(148, 163, 184);
-            doc.rect(14, finalY, 182, 24, 'S');
-
-            doc.setFont("helvetica", "bold");
-            doc.setFontSize(9);
-
-            doc.setTextColor(0, 71, 171);
-            doc.text(`FRESH [PIC: ${freshTotP}]    WT: ${freshTotW.toFixed(1)}    AVG: ${freshAvg}`, 105, finalY + 5.5, { align: "center" });
-
-            doc.setTextColor(220, 53, 69);
-            doc.text(`LAME [PIC: ${lameTotP}]    WT: ${lameTotW.toFixed(1)}    AVG: ${lameAvg}`, 105, finalY + 11, { align: "center" });
-
-            doc.setTextColor(139, 92, 246);
-            doc.text(`MAGGOT [PIC: ${maggotTotP}]    WT: ${maggotTotW.toFixed(1)}    AVG: ${maggotAvg}`, 105, finalY + 16.5, { align: "center" });
-
-            doc.setTextColor(15, 23, 42);
-            doc.setFontSize(9.5);
-            doc.text(`TOTAL PIC: ${overallTotP}    TOTAL WT: ${overallTotW.toFixed(1)}    AVG: ${overallAvg}`, 105, finalY + 22, { align: "center" });
-
-            return doc.output('blob');
+            return new Blob([pdf], { type: "application/pdf" });
         }
 
-        function sanitizeFileName(str) {
-            return (str || 'DC').replace(/[^a-zA-Z0-9_-]/g, '_');
+        function buildVectorPdfBlob(record) {
+            if (window.jspdf && window.jspdf.jsPDF && typeof (new window.jspdf.jsPDF()).autoTable === 'function') {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+                const m = computeRecordMetrics(record);
+                const { s, data, colP, colW } = m;
+
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(14);
+                doc.setTextColor(15, 23, 42);
+                doc.text("DC STATEMENT REPORT", 14, 14);
+
+                doc.setFontSize(10);
+                doc.text(`FARMER: ${s.farmerName || 'N/A'}`, 14, 21);
+                doc.setTextColor(2, 132, 199);
+                doc.text(`TRADER: ${s.traderName || 'N/A'}`, 14, 26);
+
+                doc.setTextColor(71, 85, 105);
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(9);
+                doc.text(`ADDRESS: ${s.address || 'N/A'}  |  CAR NO: ${s.carNumber || 'N/A'}`, 14, 31);
+
+                doc.setTextColor(30, 41, 59);
+                doc.setFont("helvetica", "bold");
+                doc.text(`DATE: ${s.date || 'N/A'}`, 196, 14, { align: "right" });
+                doc.text(`LOAD: ${s.loadingTime || 'N/A'}`, 196, 19, { align: "right" });
+                doc.text(`DISP: ${s.dispatchTime || 'N/A'}`, 196, 24, { align: "right" });
+
+                doc.setDrawColor(15, 23, 42);
+                doc.setLineWidth(0.5);
+                doc.line(14, 34, 196, 34);
+
+                const head = [["COL 1", "COL 2", "COL 3", "COL 4", "COL 5"]];
+                const body = [];
+                const entryTypesGrid = Array.from({ length: 20 }, () => Array(5).fill('F'));
+
+                for (let r = 0; r < 20; r++) {
+                    let rowCells = [];
+                    for (let c = 0; c < 5; c++) {
+                        let e = (data[c] || [])[r];
+                        if (e) {
+                            entryTypesGrid[r][c] = e.type || 'F';
+                            rowCells.push(`${e.pics}-${e.weight}`);
+                        } else {
+                            rowCells.push("");
+                        }
+                    }
+                    body.push(rowCells);
+                }
+
+                let colTotalsRow = [];
+                for (let c = 0; c < 5; c++) {
+                    colTotalsRow.push(`P:${colP[c]} W:${colW[c].toFixed(1)}`);
+                }
+                body.push(colTotalsRow);
+
+                doc.autoTable({
+                    startY: 37,
+                    head: head,
+                    body: body,
+                    theme: 'grid',
+                    styles: {
+                        font: "helvetica",
+                        fontSize: 8.5,
+                        cellPadding: 1.3,
+                        halign: 'center',
+                        valign: 'middle',
+                        lineColor: [148, 163, 184],
+                        lineWidth: 0.2
+                    },
+                    headStyles: {
+                        fillColor: [15, 23, 42],
+                        textColor: [255, 255, 255],
+                        fontStyle: 'bold',
+                        fontSize: 8.5
+                    },
+                    didParseCell: function(hookData) {
+                        if (hookData.section === 'body') {
+                            if (hookData.row.index === 20) {
+                                hookData.cell.styles.fillColor = [241, 245, 249];
+                                hookData.cell.styles.fontStyle = 'bold';
+                                hookData.cell.styles.textColor = [30, 41, 59];
+                            } else {
+                                let t = entryTypesGrid[hookData.row.index][hookData.column.index];
+                                hookData.cell.styles.fontStyle = 'bold';
+                                if (t === 'F') hookData.cell.styles.textColor = [0, 71, 171];
+                                else if (t === 'L') hookData.cell.styles.textColor = [220, 53, 69];
+                                else if (t === 'M') hookData.cell.styles.textColor = [139, 92, 246];
+                            }
+                        }
+                    },
+                    margin: { left: 14, right: 14 }
+                });
+
+                let finalY = (doc.lastAutoTable && doc.lastAutoTable.finalY) ? doc.lastAutoTable.finalY + 5 : 185;
+                doc.setFillColor(241, 243, 245);
+                doc.rect(14, finalY, 182, 24, 'F');
+                doc.setDrawColor(148, 163, 184);
+                doc.rect(14, finalY, 182, 24, 'S');
+
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(9);
+
+                doc.setTextColor(0, 71, 171);
+                doc.text(`FRESH [PIC: ${m.freshTotP}]    WT: ${m.freshTotW.toFixed(1)} KG    AVG: ${m.freshAvg} KG`, 105, finalY + 5.5, { align: "center" });
+
+                doc.setTextColor(220, 53, 69);
+                doc.text(`LAME [PIC: ${m.lameTotP}]    WT: ${m.lameTotW.toFixed(1)} KG    AVG: ${m.lameAvg} KG`, 105, finalY + 11, { align: "center" });
+
+                doc.setTextColor(139, 92, 246);
+                doc.text(`MAGGOT [PIC: ${m.maggotTotP}]    WT: ${m.maggotTotW.toFixed(1)} KG    AVG: ${m.maggotAvg} KG`, 105, finalY + 16.5, { align: "center" });
+
+                doc.setTextColor(15, 23, 42);
+                doc.setFontSize(9.5);
+                doc.text(`TOTAL PIC: ${m.overallTotP}    TOTAL WT: ${m.overallTotW.toFixed(1)} KG    AVG: ${m.overallAvg} KG`, 105, finalY + 22, { align: "center" });
+
+                return doc.output('blob');
+            }
+
+            return buildRawVectorPdfBlob(record);
+        }
+
+        function sanitizeFilePart(str) {
+            return String(str || 'NA').replace(/[\\/:*?"<>|]/g, '').trim() || 'NA';
+        }
+
+        function getPdfFileName(record) {
+            const s = record.seller || {};
+            const farmer = sanitizeFilePart(s.farmerName);
+            const trader = sanitizeFilePart(s.traderName);
+            const dt = sanitizeFilePart(s.date || todayFormatted);
+            return `${farmer} to ${trader} (${dt}).pdf`;
         }
 
         function openOrShareVectorPdf() {
             if (!currentViewingRecord) return;
-            const s = currentViewingRecord.seller || {};
-            const fileName = `DC_${sanitizeFileName(s.farmerName)}_${sanitizeFileName(s.traderName)}_${s.date || todayFormatted}.pdf`;
+            const fileName = getPdfFileName(currentViewingRecord);
+            const pdfBlob = buildVectorPdfBlob(currentViewingRecord);
 
-            let pdfBlob;
-            try {
-                pdfBlob = buildVectorPdfBlob(currentViewingRecord);
-            } catch (err) {
-                showCustomAlert("PDF ERROR", "COULD NOT GENERATE VECTOR PDF. CHECK INTERNET FOR JSPDF OR USE SHARE TEXT.");
-                return;
-            }
-
-            // Cordova / Android Native External PDF Viewer (Google Drive / PDF Viewer)
             if (window.cordova && window.resolveLocalFileSystemURL) {
                 const storageDir = (window.cordova.file && (window.cordova.file.externalCacheDirectory || window.cordova.file.cacheDirectory || window.cordova.file.externalDataDirectory)) || "";
                 if (storageDir) {
@@ -1781,19 +1855,21 @@
                                             'application/pdf',
                                             {
                                                 error: function() {
-                                                    fallbackCordovaShare(nativeUrl, fileName);
+                                                    fallbackCordovaPdfShare(nativeUrl, fileName);
                                                 }
                                             }
                                         );
                                     } else {
-                                        fallbackCordovaShare(nativeUrl, fileName);
+                                        fallbackCordovaPdfShare(nativeUrl, fileName);
                                     }
                                 };
                                 fileWriter.onerror = function() {
-                                    showCustomAlert("WRITE ERROR", "FAILED TO WRITE PDF FILE TO STORAGE.");
+                                    triggerBrowserPdfOpen(pdfBlob, fileName);
                                 };
                                 fileWriter.write(pdfBlob);
                             });
+                        }, function() {
+                            triggerBrowserPdfOpen(pdfBlob, fileName);
                         });
                     }, function() {
                         triggerBrowserPdfOpen(pdfBlob, fileName);
@@ -1805,7 +1881,7 @@
             triggerBrowserPdfOpen(pdfBlob, fileName);
         }
 
-        function fallbackCordovaShare(fileUrl, fileName) {
+        function fallbackCordovaPdfShare(fileUrl, fileName) {
             if (window.plugins && window.plugins.socialsharing && window.plugins.socialsharing.share) {
                 window.plugins.socialsharing.share(fileName, fileName, fileUrl, null);
             } else {
@@ -1818,77 +1894,85 @@
             const a = document.createElement('a');
             a.href = pdfUrl;
             a.download = fileName;
-            a.target = '_blank';
-            a.rel = 'noopener noreferrer';
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
-            setTimeout(() => URL.revokeObjectURL(pdfUrl), 15000);
+            try {
+                window.open(pdfUrl, '_blank');
+            } catch (e) {}
+            setTimeout(() => URL.revokeObjectURL(pdfUrl), 20000);
         }
 
+        // আপনার নির্ধারিত ফরম্যাটে ডাইরেক্ট WhatsApp শেয়ার
         function shareDetailsAction() {
             if (!currentViewingRecord) return;
-            let s = currentViewingRecord.seller;
-            let data = currentViewingRecord.data;
+            const m = computeRecordMetrics(currentViewingRecord);
+            const { s } = m;
 
-            let freshTotW = 0, freshTotP = 0;
-            let lameTotW = 0, lameTotP = 0;
-            let maggotTotW = 0, maggotTotP = 0;
-            let overallTotW = 0, overallTotP = 0;
+            const detailsText =
+                `*DC STATEMENT DETAILS*\n` +
+                `*FARMER:* *${s.farmerName || 'N/A'}*\n` +
+                `*TRADER:* ${s.traderName || 'N/A'}\n` +
+                `*ADDRESS:* ${s.address || 'N/A'}\n` +
+                `*CAR NO:* ${s.carNumber || 'N/A'}\n` +
+                `*DATE:* ${s.date || 'N/A'}\n` +
+                `*LOADING TIME:* ${s.loadingTime || 'N/A'}\n` +
+                `*DISPATCH TIME:* ${s.dispatchTime || 'N/A'}\n\n` +
+                `*--- SUMMARY ---*\n` +
+                `*FRESH:* \n` +
+                `* PICS: ${m.freshTotP} \n` +
+                `* WT: ${m.freshTotW.toFixed(1)} KG\n` +
+                `* AVG: ${m.freshAvg} KG\n` +
+                `*LAME:* \n` +
+                `* PICS: ${m.lameTotP} \n` +
+                `* WT: ${m.lameTotW.toFixed(1)} KG\n` +
+                `* AVG: ${m.lameAvg} KG\n` +
+                `*MAGGOT:*\n` +
+                `* PICS: ${m.maggotTotP} \n` +
+                `* WT: ${m.maggotTotW.toFixed(1)} KG\n` +
+                `* AVG: ${m.maggotAvg} KG\n` +
+                `*TOTAL PICS:* ${m.overallTotP}\n` +
+                `*TOTAL WEIGHT:* ${m.overallTotW.toFixed(1)} KG\n` +
+                `*OVERALL AVG:* ${m.overallAvg} KG`;
 
-            data.forEach(col => {
-                col.forEach(e => {
-                    let w = parseFloat(e.weight);
-                    let p = e.pics;
-                    let t = e.type || 'F';
-                    overallTotP += p;
-                    overallTotW += w;
-                    if (t === 'F') {
-                        freshTotP += p;
-                        freshTotW += w;
-                    } else if (t === 'L') {
-                        lameTotP += p;
-                        lameTotW += w;
-                    } else if (t === 'M') {
-                        maggotTotP += p;
-                        maggotTotW += w;
+            // 1. Cordova SocialSharing WhatsApp Direct
+            if (window.plugins && window.plugins.socialsharing && window.plugins.socialsharing.shareViaWhatsApp) {
+                window.plugins.socialsharing.shareViaWhatsApp(
+                    detailsText,
+                    null,
+                    null,
+                    function() {},
+                    function() {
+                        openWhatsAppIntentOrUrl(detailsText);
                     }
-                });
-            });
+                );
+                return;
+            }
 
-            let freshAvg = freshTotP > 0 ? (freshTotW / freshTotP).toFixed(3) : '0.000';
-            let lameAvg = lameTotP > 0 ? (lameTotW / lameTotP).toFixed(3) : '0.000';
-            let maggotAvg = maggotTotP > 0 ? (maggotTotW / maggotTotP).toFixed(3) : '0.000';
-            let overallAvg = overallTotP > 0 ? (overallTotW / overallTotP).toFixed(3) : '0.000';
+            // 2. Direct WhatsApp URI / Web URL
+            openWhatsAppIntentOrUrl(detailsText);
+        }
 
-            let detailsText = `*DC STATEMENT REPORT*\n` +
-                              `======================\n` +
-                              `*FARMER:* *${s.farmerName || 'N/A'}*\n` +
-                              `*TRADER:* ${s.traderName || 'N/A'}\n` +
-                              `*ADDRESS:* ${s.address || 'N/A'}\n` +
-                              `*CAR NO:* ${s.carNumber || 'N/A'}\n` +
-                              `*DATE:* ${s.date}\n` +
-                              `*LOADING TIME:* ${s.loadingTime || 'N/A'}\n` +
-                              `*DISPATCH TIME:* ${s.dispatchTime || 'N/A'}\n\n` +
-                              `*--- CATEGORY SUMMARY ---*\n` +
-                              `▫️ *FRESH:* PICS: ${freshTotP} | WT: ${freshTotW.toFixed(1)} | AVG: ${freshAvg}\n` +
-                              `▫️ *LAME:* PICS: ${lameTotP} | WT: ${lameTotW.toFixed(1)} | AVG: ${lameAvg}\n` +
-                              `▫️ *MAGGOT:* PICS: ${maggotTotP} | WT: ${maggotTotW.toFixed(1)} | AVG: ${maggotAvg}\n\n` +
-                              `*--- OVERALL TOTAL ---*\n` +
-                              `📦 *TOTAL PICS:* ${overallTotP}\n` +
-                              `⚖️ *TOTAL WEIGHT:* ${overallTotW.toFixed(1)}\n` +
-                              `📊 *OVERALL AVG:* ${overallAvg}`;
+        function openWhatsAppIntentOrUrl(text) {
+            const encoded = encodeURIComponent(text);
+            const waUrl = `https://wa.me/?text=${encoded}`;
+            const intentUrl = `whatsapp://send?text=${encoded}`;
 
-            if (navigator.share) {
-                navigator.share({
-                    title: `DC Statement - ${s.farmerName}`,
-                    text: detailsText
-                }).catch((error) => {
-                    console.log('Share canceled or failed', error);
-                    copyToClipboardFallback(detailsText);
-                });
-            } else {
-                copyToClipboardFallback(detailsText);
+            try {
+                const opened = window.open(intentUrl, '_system');
+                if (!opened) {
+                    window.location.href = waUrl;
+                }
+            } catch (e) {
+                try {
+                    window.location.href = waUrl;
+                } catch (err) {
+                    if (navigator.share) {
+                        navigator.share({ text: text }).catch(() => copyToClipboardFallback(text));
+                    } else {
+                        copyToClipboardFallback(text);
+                    }
+                }
             }
         }
 
