@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='utf-8'?>
-<widget id="com.faruk.dailychalandc" version="1.0.0" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
+<widget id="com.faruk.dailychalandc" version="1.0.0" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0" xmlns:android="http://schemas.android.com/apk/res/android">
     <name>Daily Chalan DC</name>
     <description>Daily collection and poultry tracking app</description>
     <author email="support@example.com" href="https://github.com/">Faruk Gazi</author>
@@ -10,16 +10,26 @@
 
     <allow-intent href="http://*/*" />
     <allow-intent href="https://*/*" />
+    <allow-intent href="content://*/*" />
+    <allow-intent href="file://*/*" />
+
     <preference name="orientation" value="default" />
     <preference name="fullscreen" value="false" />
+    <preference name="AndroidPersistentFileLocation" value="Compatibility" />
 
     <!-- প্রয়োজনীয় প্লাগইনসমূহ -->
     <plugin name="cordova-plugin-file" spec="^7.0.0" />
     <plugin name="cordova-plugin-x-socialsharing" spec="^6.0.4" />
     <plugin name="cordova-plugin-splashscreen" spec="^6.0.1" />
+    <plugin name="cordova-plugin-file-opener2" spec="^4.0.0" />
 
     <platform name="android">
         <allow-intent href="market:*" />
+        <allow-intent href="content:*" />
+
+        <!-- ফাইল রিড ও স্টোরেজ পারমিশন -->
+        <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+        <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
         
         <!-- স্প্ল্যাশ স্ক্রিন সেটিংস -->
         <preference name="SplashScreen" value="screen" />
