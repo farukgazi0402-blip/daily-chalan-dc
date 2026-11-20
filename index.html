@@ -1825,12 +1825,39 @@
             return String(str || 'NA').replace(/[\\/:*?"<>|]/g, '').trim() || 'NA';
         }
 
+        // নাম: FARMER TO TRADER (DATE).pdf
         function getPdfFileName(record) {
             const s = record.seller || {};
             const farmer = sanitizeFilePart(s.farmerName);
             const trader = sanitizeFilePart(s.traderName);
             const dt = sanitizeFilePart(s.date || todayFormatted);
-            return `${farmer} to ${trader} (${dt}).pdf`;
+            return `${farmer} TO ${trader} (${dt}).pdf`;
+        }
+
+        function blobToDataUrl(blob, callback) {
+            const reader = new FileReader();
+            reader.onloadend = function() {
+                callback(reader.result);
+            };
+            reader.readAsDataURL(blob);
+        }
+
+        function sharePdfFileDirectlyToWhatsApp(pdfBlob, fileName) {
+            // 1. Web Share API with File (Android WebView / Chrome / Modern App)
+            const pdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' });
+            if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+                navigator.share({
+                    title: fileName,
+                    text: fileName,
+                    files: [pdfFile]
+                }).catch(function() {
+                    triggerBrowserPdfDownload(pdfBlob, fileName);
+                });
+                return;
+            }
+
+            // 2. Fallback to file download if Web Share with files is unsupported
+            triggerBrowserPdfDownload(pdfBlob, fileName);
         }
 
         function openOrShareVectorPdf() {
@@ -1841,7 +1868,7 @@
             const fileName = getPdfFileName(rec);
             const pdfBlob = buildVectorPdfBlob(rec);
 
-            const executePdfAction = function() {
+            const runCordovaPdfShare = function() {
                 if (window.cordova && window.resolveLocalFileSystemURL) {
                     const f = window.cordova.file || {};
                     const storageDir = f.externalCacheDirectory || f.cacheDirectory || f.externalDataDirectory || f.dataDirectory || "";
@@ -1851,66 +1878,71 @@
                                 fileEntry.createWriter(function(fileWriter) {
                                     fileWriter.onwriteend = function() {
                                         const nativeUrl = fileEntry.toURL();
-                                        if (window.cordova.plugins && window.cordova.plugins.fileOpener2) {
-                                            window.cordova.plugins.fileOpener2.open(
+                                        if (window.plugins && window.plugins.socialsharing && window.plugins.socialsharing.shareViaWhatsApp) {
+                                            window.plugins.socialsharing.shareViaWhatsApp(
+                                                fileName,
                                                 nativeUrl,
-                                                'application/pdf',
-                                                {
-                                                    success: function() {},
-                                                    error: function() {
-                                                        fallbackCordovaPdfShare(nativeUrl, fileName, pdfBlob);
+                                                null,
+                                                function() {},
+                                                function() {
+                                                    if (window.plugins.socialsharing.share) {
+                                                        window.plugins.socialsharing.share(fileName, fileName, nativeUrl, null);
+                                                    } else {
+                                                        sharePdfFileDirectlyToWhatsApp(pdfBlob, fileName);
                                                     }
                                                 }
                                             );
+                                        } else if (window.plugins && window.plugins.socialsharing && window.plugins.socialsharing.share) {
+                                            window.plugins.socialsharing.share(fileName, fileName, nativeUrl, null);
                                         } else {
-                                            fallbackCordovaPdfShare(nativeUrl, fileName, pdfBlob);
+                                            sharePdfFileDirectlyToWhatsApp(pdfBlob, fileName);
                                         }
                                     };
                                     fileWriter.onerror = function() {
-                                        triggerBrowserPdfOpen(pdfBlob, fileName);
+                                        sharePdfFileDirectlyToWhatsApp(pdfBlob, fileName);
                                     };
                                     fileWriter.write(pdfBlob);
                                 }, function() {
-                                    triggerBrowserPdfOpen(pdfBlob, fileName);
+                                    sharePdfFileDirectlyToWhatsApp(pdfBlob, fileName);
                                 });
                             }, function() {
-                                triggerBrowserPdfOpen(pdfBlob, fileName);
+                                sharePdfFileDirectlyToWhatsApp(pdfBlob, fileName);
                             });
                         }, function() {
-                            triggerBrowserPdfOpen(pdfBlob, fileName);
+                            sharePdfFileDirectlyToWhatsApp(pdfBlob, fileName);
                         });
                         return;
                     }
                 }
-                triggerBrowserPdfOpen(pdfBlob, fileName);
+
+                // If Cordova file system isn't exposed, try base64 via SocialSharing if present
+                if (window.plugins && window.plugins.socialsharing && window.plugins.socialsharing.shareViaWhatsApp) {
+                    blobToDataUrl(pdfBlob, function(dataUrl) {
+                        window.plugins.socialsharing.shareViaWhatsApp(
+                            fileName,
+                            dataUrl,
+                            null,
+                            function() {},
+                            function() {
+                                sharePdfFileDirectlyToWhatsApp(pdfBlob, fileName);
+                            }
+                        );
+                    });
+                    return;
+                }
+
+                sharePdfFileDirectlyToWhatsApp(pdfBlob, fileName);
             };
 
             if (window.cordova && !window.resolveLocalFileSystemURL) {
-                document.addEventListener("deviceready", executePdfAction, { once: true });
-                setTimeout(executePdfAction, 400);
+                document.addEventListener("deviceready", runCordovaPdfShare, { once: true });
+                setTimeout(runCordovaPdfShare, 400);
             } else {
-                executePdfAction();
+                runCordovaPdfShare();
             }
         }
 
-        function fallbackCordovaPdfShare(fileUrl, fileName, pdfBlob) {
-            if (window.plugins && window.plugins.socialsharing && window.plugins.socialsharing.share) {
-                window.plugins.socialsharing.share(
-                    fileName,
-                    fileName,
-                    fileUrl,
-                    null,
-                    function() {},
-                    function() {
-                        triggerBrowserPdfOpen(pdfBlob, fileName);
-                    }
-                );
-            } else {
-                triggerBrowserPdfOpen(pdfBlob, fileName);
-            }
-        }
-
-        function triggerBrowserPdfOpen(pdfBlob, fileName) {
+        function triggerBrowserPdfDownload(pdfBlob, fileName) {
             try {
                 const pdfUrl = URL.createObjectURL(pdfBlob);
                 const a = document.createElement('a');
@@ -1923,26 +1955,29 @@
                     document.body.removeChild(a);
                     URL.revokeObjectURL(pdfUrl);
                 }, 15000);
-                showCustomAlert("PDF READY", `GENERATED: ${fileName}`);
+                showCustomAlert("PDF READY", `SAVED AS: ${fileName}`);
             } catch (err) {
-                showCustomAlert("PDF ERROR", "COULD NOT OPEN OR DOWNLOAD PDF.");
+                showCustomAlert("PDF ERROR", "COULD NOT GENERATE OR SHARE PDF.");
             }
         }
 
+        // আপনার নির্ধারিত নতুন ফরম্যাটে মেসেজ তৈরি
         function buildStatementShareText(record) {
             const m = computeRecordMetrics(record);
             const { s } = m;
 
             return (
-                `*DC STATEMENT DETAILS*\n` +
+                `*---DC STATEMENT DETAILS---*\n` +
+                `*========================*\n` +
                 `*FARMER:* *${s.farmerName || 'N/A'}*\n` +
-                `*TRADER:* ${s.traderName || 'N/A'}\n` +
+                `*TRADER:* *${s.traderName || 'N/A'}*\n` +
                 `*ADDRESS:* ${s.address || 'N/A'}\n` +
                 `*CAR NO:* ${s.carNumber || 'N/A'}\n` +
                 `*DATE:* ${s.date || 'N/A'}\n` +
                 `*LOADING TIME:* ${s.loadingTime || 'N/A'}\n` +
                 `*DISPATCH TIME:* ${s.dispatchTime || 'N/A'}\n\n` +
-                `*--- SUMMARY ---*\n` +
+                `*--- CATEGORY SUMMARY ---*\n` +
+                `*=======================*\n` +
                 `*FRESH:* \n` +
                 `* PICS: ${m.freshTotP} \n` +
                 `* WT: ${m.freshTotW.toFixed(1)} KG\n` +
@@ -1955,9 +1990,9 @@
                 `* PICS: ${m.maggotTotP} \n` +
                 `* WT: ${m.maggotTotW.toFixed(1)} KG\n` +
                 `* AVG: ${m.maggotAvg} KG\n` +
-                `*TOTAL PICS:* ${m.overallTotP}\n` +
-                `*TOTAL WEIGHT:* ${m.overallTotW.toFixed(1)} KG\n` +
-                `*OVERALL AVG:* ${m.overallAvg} KG`
+                `🐓*TOTAL PICS:* ${m.overallTotP}\n` +
+                `⚖️*TOTAL WEIGHT:* ${m.overallTotW.toFixed(1)} KG\n` +
+                `⚖️*OVERALL AVG:* ${m.overallAvg} KG`
             );
         }
 
