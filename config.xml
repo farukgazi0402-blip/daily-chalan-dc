@@ -8,16 +8,19 @@
     <!-- অ্যাপের আইকন -->
     <icon src="icon.png" />
 
+    <!-- নেটওয়ার্ক, ফাইল ও এক্সটার্নাল অ্যাপ ইনটেন্ট অনুমতি -->
     <allow-intent href="http://*/*" />
     <allow-intent href="https://*/*" />
     <allow-intent href="content://*/*" />
     <allow-intent href="file://*/*" />
+    <allow-intent href="whatsapp:*" />
+    <allow-intent href="intent:*" />
 
     <preference name="orientation" value="default" />
     <preference name="fullscreen" value="false" />
     <preference name="AndroidPersistentFileLocation" value="Compatibility" />
 
-    <!-- প্রয়োজনীয় প্লাগইনসমূহ -->
+    <!-- PDF তৈরি, সংরক্ষণ ও এক্সটার্নাল ভিউয়ারে ওপেন করার প্লাগইনসমূহ -->
     <plugin name="cordova-plugin-file" spec="^7.0.0" />
     <plugin name="cordova-plugin-x-socialsharing" spec="^6.0.4" />
     <plugin name="cordova-plugin-splashscreen" spec="^6.0.1" />
@@ -26,10 +29,22 @@
     <platform name="android">
         <allow-intent href="market:*" />
         <allow-intent href="content:*" />
+        <allow-intent href="whatsapp:*" />
+        <allow-intent href="intent:*" />
 
         <!-- ফাইল রিড ও স্টোরেজ পারমিশন -->
         <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
         <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+
+        <!-- PDF ভিউয়ার (Google Drive ইত্যাদি) ও WhatsApp অ্যাক্সেসের জন্য Queries -->
+        <queries>
+            <package android:name="com.whatsapp" />
+            <package android:name="com.whatsapp.w4b" />
+            <intent>
+                <action android:name="android.intent.action.VIEW" />
+                <data android:mimeType="application/pdf" />
+            </intent>
+        </queries>
         
         <!-- স্প্ল্যাশ স্ক্রিন সেটিংস -->
         <preference name="SplashScreen" value="screen" />
