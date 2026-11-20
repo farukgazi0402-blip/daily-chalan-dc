@@ -20,7 +20,7 @@
     <preference name="fullscreen" value="false" />
     <preference name="AndroidPersistentFileLocation" value="Compatibility" />
 
-    <!-- PDF তৈরি, সংরক্ষণ ও এক্সটার্নাল ভিউয়ারে ওপেন করার প্লাগইনসমূহ -->
+    <!-- PDF তৈরি, সংরক্ষণ ও WhatsApp/এক্সটার্নাল অ্যাপে পাঠানোর প্লাগইনসমূহ -->
     <plugin name="cordova-plugin-file" spec="^7.0.0" />
     <plugin name="cordova-plugin-x-socialsharing" spec="^6.0.4" />
     <plugin name="cordova-plugin-splashscreen" spec="^6.0.1" />
@@ -36,10 +36,14 @@
         <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
         <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
 
-        <!-- PDF ভিউয়ার (Google Drive ইত্যাদি) ও WhatsApp অ্যাক্সেসের জন্য Queries -->
+        <!-- PDF শেয়ার/ভিউয়ার ও WhatsApp অ্যাক্সেসের জন্য Queries -->
         <queries>
             <package android:name="com.whatsapp" />
             <package android:name="com.whatsapp.w4b" />
+            <intent>
+                <action android:name="android.intent.action.SEND" />
+                <data android:mimeType="application/pdf" />
+            </intent>
             <intent>
                 <action android:name="android.intent.action.VIEW" />
                 <data android:mimeType="application/pdf" />
